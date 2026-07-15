@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { SiteHeader } from "../components/SiteHeader";
+import { CatalogSyncButton } from "../components/CatalogSyncButton";
 import { requireChatGPTUser } from "../chatgpt-auth";
-import { ensureViewer } from "@/db/runtime";
+import { ensureViewer, getImportedCatalogStats } from "@/db/runtime";
 import { movies } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const user = await requireChatGPTUser("/admin");
   await ensureViewer(user.email, user.displayName);
+  const imported = await getImportedCatalogStats();
   const seriesCount = movies.filter((movie) => movie.series).length;
 
   return (
@@ -22,7 +24,8 @@ export default async function AdminPage() {
         </aside>
         <section className="admin-content">
           <div className="settings-heading"><div><p className="eyebrow">CONTROL ROOM</p><h1>Tổng quan nội dung</h1><p>Theo dõi catalog demo và trạng thái phát hành.</p></div><span className="status-badge status-live">Hệ thống ổn định</span></div>
-          <div className="admin-metrics"><article><p>Tựa phim</p><strong>{movies.length}</strong><span>100% đã kiểm duyệt</span></article><article><p>Series</p><strong>{seriesCount}</strong><span>14 tập sẵn sàng</span></article><article><p>Quyền phát</p><strong>100%</strong><span>Không có cảnh báo</span></article><article><p>Playback</p><strong>99.9%</strong><span>Demo health target</span></article></div>
+          <div className="admin-metrics"><article><p>Tựa phim demo</p><strong>{movies.length}</strong><span>Catalog nội bộ</span></article><article><p>Metadata đã nhập</p><strong>{imported.movies}</strong><span>{imported.trailers} trailer khả dụng</span></article><article><p>Series</p><strong>{seriesCount}</strong><span>Catalog demo</span></article><article><p>Nguồn nhập</p><strong>TMDB</strong><span>Metadata và trailer được cấp phép</span></article></div>
+          <CatalogSyncButton />
           <section className="admin-table-wrap" id="catalog">
             <div className="catalog-heading"><h2>Catalog đang phát hành</h2><Link className="text-link" href="/browse">Xem trên storefront →</Link></div>
             <div className="admin-table" role="table" aria-label="Catalog">

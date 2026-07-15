@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import type { ImportedMovie } from "@/lib/tmdb/types";
 
 let initialization: Promise<void> | null = null;
 
@@ -51,9 +52,38 @@ export function ensureDatabase() {
         target TEXT NOT NULL,
         created_at TEXT NOT NULL
       )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS imported_movies (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL DEFAULT 'tmdb',
+        provider_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        original_title TEXT NOT NULL,
+        release_year INTEGER,
+        overview TEXT NOT NULL,
+        poster_url TEXT,
+        backdrop_url TEXT,
+        vote_average_x10 INTEGER NOT NULL DEFAULT 0,
+        popularity_x100 INTEGER NOT NULL DEFAULT 0,
+        trailer_key TEXT,
+        trailer_site TEXT,
+        updated_at TEXT NOT NULL,
+        UNIQUE(provider, provider_id)
+      )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS catalog_sync_runs (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        actor_email TEXT NOT NULL,
+        status TEXT NOT NULL,
+        imported_count INTEGER NOT NULL DEFAULT 0,
+        trailer_count INTEGER NOT NULL DEFAULT 0,
+        error_message TEXT,
+        created_at TEXT NOT NULL
+      )`),
       db.prepare("CREATE INDEX IF NOT EXISTS profiles_user_idx ON profiles(user_id)"),
       db.prepare("CREATE INDEX IF NOT EXISTS watchlist_user_created_idx ON watchlist(user_id, created_at DESC)"),
       db.prepare("CREATE INDEX IF NOT EXISTS progress_user_updated_idx ON watch_progress(user_id, updated_at DESC)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS imported_movies_popularity_idx ON imported_movies(popularity_x100 DESC)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS catalog_sync_created_idx ON catalog_sync_runs(created_at DESC)"),
     ])
     .then(() => undefined)
     .catch((error) => {
@@ -195,4 +225,123 @@ export async function recordAudit(actorEmail: string, action: string, target: st
     .prepare("INSERT INTO audit_events (id, actor_email, action, target, created_at) VALUES (?, ?, ?, ?, ?)")
     .bind(crypto.randomUUID(), actorEmail, action, target, new Date().toISOString())
     .run();
+}
+
+export async function saveImportedMovies(movies: ImportedMovie[]) {
+  if (movies.length === 0) return;
+  await ensureDatabase();
+  const statements = movies.map((movie) =>
+    database()
+      .prepare(
+        `INSERT INTO imported_movies (
+          id, provider, provider_id, title, original_title, release_year, overview,
+          poster_url, backdrop_url, vote_average_x10, popularity_x100,
+          trailer_key, trailer_site, updated_at
+        ) VALUES (?, 'tmdb', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(provider, provider_id) DO UPDATE SET
+          title = excluded.title,
+          original_title = excluded.original_title,
+          release_year = excluded.release_year,
+          overview = excluded.overview,
+          poster_url = excluded.poster_url,
+          backdrop_url = excluded.backdrop_url,
+          vote_average_x10 = excluded.vote_average_x10,
+          popularity_x100 = excluded.popularity_x100,
+          trailer_key = excluded.trailer_key,
+          trailer_site = excluded.trailer_site,
+          updated_at = excluded.updated_at`,
+      )
+      .bind(
+        movie.id,
+        movie.providerId,
+        movie.title,
+        movie.originalTitle,
+        movie.year,
+        movie.overview,
+        movie.posterUrl,
+        movie.backdropUrl,
+        Math.round(movie.voteAverage * 10),
+        Math.round(movie.popularity * 100),
+        movie.trailerKey,
+        movie.trailerSite,
+        movie.updatedAt,
+      ),
+  );
+  await database().batch(statements);
+}
+
+export async function listImportedMovies(limit = 14): Promise<ImportedMovie[]> {
+  await ensureDatabase();
+  const result = await database()
+    .prepare(
+      `SELECT id, provider_id AS providerId, title, original_title AS originalTitle,
+        release_year AS year, overview, poster_url AS posterUrl, backdrop_url AS backdropUrl,
+        vote_average_x10 AS voteAverageX10, popularity_x100 AS popularityX100,
+        trailer_key AS trailerKey, trailer_site AS trailerSite, updated_at AS updatedAt
+       FROM imported_movies ORDER BY popularity_x100 DESC LIMIT ?`,
+    )
+    .bind(Math.min(40, Math.max(1, Math.floor(limit))))
+    .all<{
+      id: string;
+      providerId: number;
+      title: string;
+      originalTitle: string;
+      year: number | null;
+      overview: string;
+      posterUrl: string | null;
+      backdropUrl: string | null;
+      voteAverageX10: number;
+      popularityX100: number;
+      trailerKey: string | null;
+      trailerSite: string | null;
+      updatedAt: string;
+    }>();
+  return result.results.map((movie) => ({
+    ...movie,
+    voteAverage: movie.voteAverageX10 / 10,
+    popularity: movie.popularityX100 / 100,
+  }));
+}
+
+export async function recordCatalogSync(
+  actorEmail: string,
+  status: "success" | "failed",
+  importedCount: number,
+  trailerCount: number,
+  errorMessage?: string,
+) {
+  await ensureDatabase();
+  await database()
+    .prepare(
+      `INSERT INTO catalog_sync_runs
+       (id, provider, actor_email, status, imported_count, trailer_count, error_message, created_at)
+       VALUES (?, 'tmdb', ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      crypto.randomUUID(),
+      actorEmail,
+      status,
+      importedCount,
+      trailerCount,
+      errorMessage?.slice(0, 300) ?? null,
+      new Date().toISOString(),
+    )
+    .run();
+}
+
+export async function getImportedCatalogStats() {
+  await ensureDatabase();
+  const [movies, trailers, lastSync] = await Promise.all([
+    database().prepare("SELECT COUNT(*) AS count FROM imported_movies").first<{ count: number }>(),
+    database()
+      .prepare("SELECT COUNT(*) AS count FROM imported_movies WHERE trailer_key IS NOT NULL")
+      .first<{ count: number }>(),
+    database()
+      .prepare(
+        `SELECT status, imported_count AS importedCount, trailer_count AS trailerCount,
+          created_at AS createdAt FROM catalog_sync_runs ORDER BY created_at DESC LIMIT 1`,
+      )
+      .first<{ status: string; importedCount: number; trailerCount: number; createdAt: string }>(),
+  ]);
+  return { movies: movies?.count ?? 0, trailers: trailers?.count ?? 0, lastSync: lastSync ?? null };
 }

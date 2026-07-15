@@ -44,7 +44,7 @@ test("all critical product routes and persistence contracts exist", async () => 
     read("db/runtime.ts"),
   ]);
   assert.match(hosting, /"d1": "DB"/);
-  for (const table of ["users", "profiles", "watchlist", "watch_progress", "audit_events"]) {
+  for (const table of ["users", "profiles", "watchlist", "watch_progress", "audit_events", "imported_movies", "catalog_sync_runs"]) {
     assert.match(`${schema}\n${runtime}`, new RegExp(table));
   }
   assert.match(runtime, /prepare\(/);
@@ -65,4 +65,22 @@ test("storefront ships required accessibility and playback affordances", async (
   assert.match(player, /aria-live="polite"/);
   assert.match(header, /aria-label="Điều hướng chính"/);
   assert.match(catalog, /BigBuckBunny\.mp4/);
+});
+
+test("licensed catalog importer and interaction-gated trailers are wired", async () => {
+  const [client, sync, modal, home, adminRoute] = await Promise.all([
+    read("lib/tmdb/client.ts"),
+    read("lib/tmdb/sync.ts"),
+    read("app/components/TrailerModal.tsx"),
+    read("app/page.tsx"),
+    read("app/api/admin/catalog-sync/route.ts"),
+  ]);
+  assert.match(client, /api\.themoviedb\.org\/3/);
+  assert.match(client, /AbortController/);
+  assert.match(sync, /saveImportedMovies/);
+  assert.match(sync, /TMDB_ACCESS_TOKEN|TMDB_API_KEY/);
+  assert.match(modal, /youtube-nocookie\.com\/embed/);
+  assert.match(modal, /open && playable/);
+  assert.match(home, /ImportedMovieRail/);
+  assert.match(adminRoute, /getChatGPTUser/);
 });

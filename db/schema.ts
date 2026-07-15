@@ -56,3 +56,35 @@ export const auditEvents = sqliteTable("audit_events", {
   target: text("target").notNull(),
   createdAt: text("created_at").notNull(),
 });
+
+export const importedMovies = sqliteTable(
+  "imported_movies",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull().default("tmdb"),
+    providerId: integer("provider_id").notNull(),
+    title: text("title").notNull(),
+    originalTitle: text("original_title").notNull(),
+    releaseYear: integer("release_year"),
+    overview: text("overview").notNull(),
+    posterUrl: text("poster_url"),
+    backdropUrl: text("backdrop_url"),
+    voteAverage: integer("vote_average_x10").notNull().default(0),
+    popularity: integer("popularity_x100").notNull().default(0),
+    trailerKey: text("trailer_key"),
+    trailerSite: text("trailer_site"),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("imported_movies_provider_uq").on(table.provider, table.providerId)],
+);
+
+export const catalogSyncRuns = sqliteTable("catalog_sync_runs", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  actorEmail: text("actor_email").notNull(),
+  status: text("status").notNull(),
+  importedCount: integer("imported_count").notNull().default(0),
+  trailerCount: integer("trailer_count").notNull().default(0),
+  errorMessage: text("error_message"),
+  createdAt: text("created_at").notNull(),
+});

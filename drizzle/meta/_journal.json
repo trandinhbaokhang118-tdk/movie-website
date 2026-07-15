@@ -8,6 +8,13 @@
       "when": 1784151553568,
       "tag": "0000_sloppy_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784157534022,
+      "tag": "0001_big_blue_blade",
+      "breakpoints": true
     }
   ]
 }
