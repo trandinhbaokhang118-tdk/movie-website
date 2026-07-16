@@ -303,6 +303,50 @@ export async function listImportedMovies(limit = 14): Promise<ImportedMovie[]> {
   }));
 }
 
+export async function findImportedMovie(id: string): Promise<ImportedMovie | null> {
+  if (!/^tmdb-\d+$/.test(id)) return null;
+  await ensureDatabase();
+  const movie = await database()
+    .prepare(
+      `SELECT id, provider_id AS providerId, title, original_title AS originalTitle,
+        release_year AS year, overview, poster_url AS posterUrl, backdrop_url AS backdropUrl,
+        vote_average_x10 AS voteAverageX10, popularity_x100 AS popularityX100,
+        trailer_key AS trailerKey, trailer_site AS trailerSite, updated_at AS updatedAt
+       FROM imported_movies WHERE id = ? LIMIT 1`,
+    )
+    .bind(id)
+    .first<{
+      id: string;
+      providerId: number;
+      title: string;
+      originalTitle: string;
+      year: number | null;
+      overview: string;
+      posterUrl: string | null;
+      backdropUrl: string | null;
+      voteAverageX10: number;
+      popularityX100: number;
+      trailerKey: string | null;
+      trailerSite: string | null;
+      updatedAt: string;
+    }>();
+  return movie
+    ? { ...movie, voteAverage: movie.voteAverageX10 / 10, popularity: movie.popularityX100 / 100 }
+    : null;
+}
+
+export async function searchImportedMovies(query: string, limit = 40) {
+  const movies = await listImportedMovies(limit);
+  const normalized = query.trim().toLocaleLowerCase("vi");
+  if (!normalized) return movies;
+  return movies.filter((movie) =>
+    [movie.title, movie.originalTitle, movie.overview]
+      .join(" ")
+      .toLocaleLowerCase("vi")
+      .includes(normalized),
+  );
+}
+
 export async function recordCatalogSync(
   actorEmail: string,
   status: "success" | "failed",

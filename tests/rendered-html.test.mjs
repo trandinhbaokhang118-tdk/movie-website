@@ -84,3 +84,20 @@ test("licensed catalog importer and interaction-gated trailers are wired", async
   assert.match(home, /ImportedMovieRail/);
   assert.match(adminRoute, /getChatGPTUser/);
 });
+
+test("imported titles flow through browse, search, and detail routes", async () => {
+  const [browse, search, detail, card, runtime] = await Promise.all([
+    read("app/browse/page.tsx"),
+    read("app/search/page.tsx"),
+    read("app/title/[id]/page.tsx"),
+    read("app/components/ImportedMovieCard.tsx"),
+    read("db/runtime.ts"),
+  ]);
+  assert.match(browse, /listImportedMovies/);
+  assert.match(search, /searchImportedMovies/);
+  assert.match(detail, /findImportedMovie/);
+  assert.match(detail, /MINH BẠCH BẢN QUYỀN/);
+  assert.match(detail, /TrailerModal/);
+  assert.match(card, /\/title\/\$\{movie\.id\}/);
+  assert.match(runtime, /\^tmdb-/);
+});
