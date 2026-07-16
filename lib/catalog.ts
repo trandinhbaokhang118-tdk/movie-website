@@ -222,4 +222,5 @@ export function searchMovies(query: string) {
 export const demoVideo = {
   mp4: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
   attribution: "Big Buck Bunny — Blender Foundation, Creative Commons",
+  durationSeconds: 596,
 };

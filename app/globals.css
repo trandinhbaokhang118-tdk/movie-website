@@ -221,6 +221,17 @@ img { display: block; max-width: 100%; }
 .library-page, .settings-page { min-height: 75vh; padding-top: 165px; padding-bottom: 100px; }
 .library-page > p { margin-bottom: 50px; }
 .personal-grid { margin-top: 40px; }
+.history-heading { display: flex; align-items: end; justify-content: space-between; gap: 30px; }
+.history-heading h1 { max-width: 950px; margin: 0; font-size: clamp(2.4rem, 5vw, 5.2rem); line-height: 1; letter-spacing: -.065em; }
+.history-heading > div > p:last-child { max-width: 640px; margin: 14px 0 0; color: var(--muted); line-height: 1.65; }
+.history-clear-wrap { display: grid; justify-items: end; gap: 8px; }
+.history-clear-wrap [role="alert"], .history-item-actions [role="alert"] { color: var(--danger); font-size: .7rem; }
+.history-item { min-width: 0; }
+.history-date { margin: 9px 3px 0; color: var(--dim); font-size: .68rem; }
+.history-item-actions { display: grid; gap: 6px; margin-top: 6px; }
+.history-remove { width: fit-content; padding: 0; cursor: pointer; color: var(--muted); border: 0; background: transparent; font-size: .68rem; text-align: left; }
+.history-remove:hover { color: var(--danger); }
+.history-remove:disabled { cursor: wait; opacity: .6; }
 .settings-heading { align-items: start; margin-bottom: 48px; }
 .plan-pill { padding: 9px 13px; color: #bbf7d0; border: 1px solid rgba(52,211,153,.35); border-radius: 999px; background: rgba(52,211,153,.08); font-size: .72rem; font-weight: 750; }
 .account-stats, .admin-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
@@ -347,6 +358,8 @@ img { display: block; max-width: 100%; }
   .player-quality { display: none; }
   .player-status { display: none; }
   .library-page, .settings-page { padding-top: 135px; }
+  .history-heading { display: block; }
+  .history-clear-wrap { justify-items: start; margin-top: 22px; }
   .settings-heading { display: block; }
   .settings-heading .plan-pill, .settings-heading > .text-link { display: inline-flex; margin-top: 18px; }
   .account-stats { grid-template-columns: 1fr 1fr 1fr; }

@@ -209,6 +209,49 @@ export async function saveProgress(userId: string, movieId: string, positionSeco
     .run();
 }
 
+export type ViewingActivity = {
+  movieId: string;
+  positionSeconds: number;
+  updatedAt: string;
+};
+
+export async function getWatchProgress(userId: string, movieId: string) {
+  await ensureDatabase();
+  const progress = await database()
+    .prepare(
+      `SELECT movie_id AS movieId, position_seconds AS positionSeconds, updated_at AS updatedAt
+       FROM watch_progress WHERE user_id = ? AND movie_id = ? LIMIT 1`,
+    )
+    .bind(userId, movieId)
+    .first<ViewingActivity>();
+  return progress ?? null;
+}
+
+export async function listViewingActivity(userId: string, limit = 50) {
+  await ensureDatabase();
+  const result = await database()
+    .prepare(
+      `SELECT movie_id AS movieId, position_seconds AS positionSeconds, updated_at AS updatedAt
+       FROM watch_progress WHERE user_id = ? AND position_seconds > 0
+       ORDER BY updated_at DESC LIMIT ?`,
+    )
+    .bind(userId, Math.min(100, Math.max(1, Math.floor(limit))))
+    .all<ViewingActivity>();
+  return result.results;
+}
+
+export async function deleteViewingActivity(userId: string, movieId?: string) {
+  await ensureDatabase();
+  if (movieId) {
+    await database()
+      .prepare("DELETE FROM watch_progress WHERE user_id = ? AND movie_id = ?")
+      .bind(userId, movieId)
+      .run();
+    return;
+  }
+  await database().prepare("DELETE FROM watch_progress WHERE user_id = ?").bind(userId).run();
+}
+
 export async function getAccountStats(userId: string) {
   await ensureDatabase();
   const [profiles, saved, progress] = await Promise.all([

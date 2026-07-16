@@ -8,15 +8,17 @@ export function Player({
   title,
   source,
   attribution,
+  resumeAt = 0,
 }: {
   movieId: string;
   title: string;
   source: string;
   attribution: string;
+  resumeAt?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [started, setStarted] = useState(false);
-  const [message, setMessage] = useState("Sẵn sàng phát");
+  const [message, setMessage] = useState(resumeAt > 5 ? "Đã tìm thấy vị trí xem trước" : "Sẵn sàng phát");
 
   useEffect(() => {
     const video = videoRef.current;
@@ -27,15 +29,30 @@ export function Player({
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ movieId, positionSeconds: Math.floor(video.currentTime) }),
+        keepalive: true,
       });
+    };
+    const resume = () => {
+      if (resumeAt <= 5 || !Number.isFinite(video.duration) || resumeAt >= video.duration - 20) return;
+      video.currentTime = resumeAt;
+      setMessage(`Tiếp tục từ ${formatTime(resumeAt)}`);
+    };
+    const saveWhenHidden = () => {
+      if (document.visibilityState === "hidden") save();
     };
     const interval = window.setInterval(save, 15000);
     video.addEventListener("pause", save);
+    video.addEventListener("ended", save);
+    video.addEventListener("loadedmetadata", resume, { once: true });
+    document.addEventListener("visibilitychange", saveWhenHidden);
     return () => {
       window.clearInterval(interval);
       video.removeEventListener("pause", save);
+      video.removeEventListener("ended", save);
+      video.removeEventListener("loadedmetadata", resume);
+      document.removeEventListener("visibilitychange", saveWhenHidden);
     };
-  }, [movieId]);
+  }, [movieId, resumeAt]);
 
   return (
     <div className="player-shell">
@@ -60,7 +77,7 @@ export function Player({
       </video>
       {!started && (
         <div className="player-prompt" aria-hidden="true">
-          <span>▶</span><p>Nhấn nút phát để bắt đầu</p>
+          <span>▶</span><p>{resumeAt > 5 ? `Tiếp tục từ ${formatTime(resumeAt)}` : "Nhấn nút phát để bắt đầu"}</p>
         </div>
       )}
       <div className="player-status" aria-live="polite">
@@ -69,4 +86,10 @@ export function Player({
       </div>
     </div>
   );
+}
+
+function formatTime(value: number) {
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

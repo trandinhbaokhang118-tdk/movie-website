@@ -27,6 +27,7 @@ test("all critical product routes and persistence contracts exist", async () => 
     "app/title/[id]/page.tsx",
     "app/watch/[id]/page.tsx",
     "app/my-list/page.tsx",
+    "app/history/page.tsx",
     "app/profiles/page.tsx",
     "app/account/page.tsx",
     "app/admin/page.tsx",
@@ -49,6 +50,27 @@ test("all critical product routes and persistence contracts exist", async () => 
   }
   assert.match(runtime, /prepare\(/);
   assert.doesNotMatch(runtime, /localStorage|sessionStorage/);
+});
+
+test("viewing activity supports resume, continue watching, and privacy deletion", async () => {
+  const [home, history, player, progressRoute, runtime, header] = await Promise.all([
+    read("app/page.tsx"),
+    read("app/history/page.tsx"),
+    read("app/components/Player.tsx"),
+    read("app/api/progress/route.ts"),
+    read("db/runtime.ts"),
+    read("app/components/SiteHeader.tsx"),
+  ]);
+  assert.match(home, /Tiếp tục xem/);
+  assert.match(home, /listViewingActivity/);
+  assert.match(history, /ClearViewingHistory/);
+  assert.match(history, /RemoveHistoryItem/);
+  assert.match(player, /resumeAt/);
+  assert.match(player, /visibilitychange/);
+  assert.match(progressRoute, /export async function DELETE/);
+  assert.match(runtime, /deleteViewingActivity/);
+  assert.match(runtime, /getWatchProgress/);
+  assert.match(header, /href="\/history"/);
 });
 
 test("storefront ships required accessibility and playback affordances", async () => {

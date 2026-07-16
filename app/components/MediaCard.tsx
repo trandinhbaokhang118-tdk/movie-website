@@ -5,14 +5,16 @@ export function MediaCard({
   movie,
   priority = false,
   progress,
+  href,
 }: {
   movie: Movie;
   priority?: boolean;
   progress?: number;
+  href?: string;
 }) {
   return (
     <article className="media-card">
-      <Link href={`/title/${movie.id}`} className="media-card-link">
+      <Link href={href ?? `/title/${movie.id}`} className="media-card-link">
         <div className="poster-wrap" style={{ "--card-accent": movie.accent } as React.CSSProperties}>
           <img
             src={movie.poster}

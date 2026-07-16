@@ -35,6 +35,7 @@ export default async function AccountPage() {
             <h2>Trải nghiệm xem</h2>
             <Link href="/profiles"><span>Quản lý hồ sơ</span><span>→</span></Link>
             <Link href="/my-list"><span>Danh sách của tôi</span><span>→</span></Link>
+            <Link href="/history"><span>Lịch sử xem</span><span>→</span></Link>
             <Link href="/admin"><span>Không gian vận hành</span><span>→</span></Link>
           </section>
         </div>

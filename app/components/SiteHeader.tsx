@@ -18,6 +18,7 @@ export async function SiteHeader() {
           <Link href="/browse">Phim</Link>
           <Link href="/browse?type=series">Series</Link>
           <Link href="/my-list">Danh sách của tôi</Link>
+          <Link href="/history">Lịch sử</Link>
         </nav>
         <div className="header-actions">
           <Link className="icon-link" href="/search" aria-label="Tìm kiếm">
