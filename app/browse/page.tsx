@@ -5,20 +5,24 @@ import { MediaCard } from "../components/MediaCard";
 import { SiteHeader } from "../components/SiteHeader";
 import { listImportedMovies } from "@/db/runtime";
 import { movies } from "@/lib/catalog";
+import { filterMoviesForMaturity } from "@/lib/catalog";
+import { getViewerContext } from "../viewer-context";
 
 export const dynamic = "force-dynamic";
 
-const genres = ["Tất cả", "Khoa học viễn tưởng", "Chính kịch", "Bí ẩn", "Tình cảm", "Tài liệu"];
+const genres = ["Tất cả", ...Array.from(new Set(movies.flatMap((movie) => movie.genres))).sort((a, b) => a.localeCompare(b, "vi"))];
 
 export default async function BrowsePage({ searchParams }: { searchParams: Promise<{ genre?: string; type?: string }> }) {
   const { genre, type } = await searchParams;
+  const context = await getViewerContext();
+  const visibleMovies = filterMoviesForMaturity(movies, context?.profile.maturity ?? "T18");
   const selected = genre ?? "Tất cả";
-  const filtered = movies.filter((movie) => {
+  const filtered = visibleMovies.filter((movie) => {
     const genreMatches = selected === "Tất cả" || movie.genres.includes(selected);
     const typeMatches = type !== "series" || Boolean(movie.series);
     return genreMatches && typeMatches;
   });
-  const imported = selected === "Tất cả" && type !== "series" ? await listImportedMovies(30) : [];
+  const imported = !context?.profile.isKids && selected === "Tất cả" && type !== "series" ? await listImportedMovies(30) : [];
 
   return (
     <main>

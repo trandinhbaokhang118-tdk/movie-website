@@ -11,13 +11,18 @@
     "start": "vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "catalog:crawl": "python tools/crawl_movies.py archive --output data/licensed_catalog.json",
+    "catalog:test": "python -m unittest discover -s tests -p test_crawl_movies.py"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6"
+  },
+  "overrides": {
+    "postcss": "8.5.10"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

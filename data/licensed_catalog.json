@@ -1,0 +1,198 @@
+{
+  "source": "Internet Archive metadata API",
+  "generatedAt": "2026-07-16T07:36:07Z",
+  "licensePolicy": "creative-commons-or-public-domain-only",
+  "items": [
+    {
+      "id": "ia-bigbuckbunny_124",
+      "title": "Big Buck Bunny",
+      "originalTitle": "Big Buck Bunny",
+      "year": 2008,
+      "maturity": "P",
+      "genres": [
+        "Hoạt hình",
+        "Hài",
+        "Gia đình"
+      ],
+      "synopsis": "Một chú thỏ hiền lành quyết định dạy cho ba kẻ bắt nạt trong khu rừng một bài học đầy hài hước.",
+      "director": "Sacha Goedegebure",
+      "cast": [
+        "Blender Animation Studio"
+      ],
+      "accent": "#77c66e",
+      "featured": true,
+      "trending": true,
+      "duration": "10 phút",
+      "durationSeconds": 596,
+      "match": 97,
+      "poster": "https://archive.org/download/BigBuckBunny_124/__ia_thumb.jpg",
+      "backdrop": "https://archive.org/download/BigBuckBunny_124/BigBuckBunny_124.thumbs/Content/big_buck_bunny_720p_surround_000165.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/BigBuckBunny_124",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
+        "attribution": "Internet Archive contributor"
+      },
+      "video": {
+        "src": "https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4",
+        "type": "video/mp4",
+        "durationSeconds": 596,
+        "attribution": "Big Buck Bunny — Internet Archive contributor"
+      }
+    },
+    {
+      "id": "ia-sintel",
+      "title": "Sintel",
+      "originalTitle": "Sintel",
+      "year": 2010,
+      "maturity": "T13",
+      "genres": [
+        "Hoạt hình",
+        "Kỳ ảo",
+        "Phiêu lưu"
+      ],
+      "synopsis": "Một nữ chiến binh trẻ băng qua vùng đất khắc nghiệt để tìm lại người bạn rồng đã mất.",
+      "director": "Colin Levy",
+      "cast": [
+        "Halina Reijn",
+        "Thom Hoffman"
+      ],
+      "accent": "#c89058",
+      "trending": true,
+      "duration": "15 phút",
+      "durationSeconds": 888,
+      "match": 96,
+      "poster": "https://archive.org/download/Sintel/Poster.jpg",
+      "backdrop": "https://archive.org/download/Sintel/Sintel.thumbs/sintel-2048-stereo_000390.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/Sintel",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
+        "attribution": "Blender Foundation"
+      },
+      "video": {
+        "src": "https://archive.org/download/Sintel/sintel-2048-stereo_512kb.mp4",
+        "type": "video/mp4",
+        "durationSeconds": 888,
+        "attribution": "Sintel — Blender Foundation"
+      }
+    },
+    {
+      "id": "ia-tears-of-steel",
+      "title": "Tears of Steel",
+      "originalTitle": "Tears of Steel",
+      "year": 2012,
+      "maturity": "T13",
+      "genres": [
+        "Khoa học viễn tưởng",
+        "Hành động",
+        "Chính kịch"
+      ],
+      "synopsis": "Một nhóm chiến binh và nhà khoa học tái hiện một khoảnh khắc tình cảm trong quá khứ để cứu thế giới khỏi robot hủy diệt.",
+      "director": "Ian Hubert",
+      "cast": [
+        "Derek de Lint",
+        "Sergio Hasselbaink",
+        "Vanja Rukavina"
+      ],
+      "accent": "#6d8cff",
+      "trending": true,
+      "duration": "12 phút",
+      "durationSeconds": 734,
+      "match": 95,
+      "poster": "https://archive.org/download/Tears-of-Steel/tos-poster.jpg",
+      "backdrop": "https://archive.org/download/Tears-of-Steel/Tears-of-Steel.thumbs/tears_of_steel_1080p_000589.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/Tears-of-Steel",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
+        "attribution": "Ton Roosendaal"
+      },
+      "video": {
+        "src": "https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4",
+        "type": "video/mp4",
+        "durationSeconds": 734,
+        "attribution": "Tears of Steel — Ton Roosendaal"
+      }
+    },
+    {
+      "id": "ia-elephantsdream",
+      "title": "Elephants Dream",
+      "originalTitle": "Elephants Dream",
+      "year": 2006,
+      "maturity": "T13",
+      "genres": [
+        "Hoạt hình",
+        "Khoa học viễn tưởng",
+        "Siêu thực"
+      ],
+      "synopsis": "Hai nhân vật kỳ lạ khám phá một cỗ máy sống khổng lồ, nơi niềm tin và thực tại liên tục đổi chỗ.",
+      "director": "Bassam Kurdali",
+      "cast": [
+        "Cas Jansen",
+        "Tygo Gernandt"
+      ],
+      "accent": "#8a8f98",
+      "newRelease": true,
+      "duration": "11 phút",
+      "durationSeconds": 654,
+      "match": 94,
+      "poster": "https://archive.org/download/ElephantsDream/__ia_thumb.jpg",
+      "backdrop": "https://archive.org/download/ElephantsDream/ElephantsDream.thumbs/ed_hd_000300.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/ElephantsDream",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/3.0/us/",
+        "attribution": "Orange Open Movie Project Studio"
+      },
+      "video": {
+        "src": "https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4",
+        "type": "video/mp4",
+        "durationSeconds": 654,
+        "attribution": "Elephants Dream — Orange Open Movie Project Studio"
+      }
+    },
+    {
+      "id": "ia-cosmoslaundromatfirstcycle",
+      "title": "Cosmos Laundromat",
+      "originalTitle": "Cosmos Laundromat: First Cycle",
+      "year": 2015,
+      "maturity": "T13",
+      "genres": [
+        "Hoạt hình",
+        "Kỳ ảo",
+        "Hài đen"
+      ],
+      "synopsis": "Trên một hòn đảo hoang vắng, chú cừu Franck gặp một người bán hàng kỳ quặc và nhận món quà có thể thay đổi cả đời mình.",
+      "director": "Mathieu Auvray",
+      "cast": [
+        "Pierre Bokma",
+        "Reinout Scholten van Aschat"
+      ],
+      "accent": "#a78bfa",
+      "newRelease": true,
+      "duration": "12 phút",
+      "durationSeconds": 731,
+      "match": 93,
+      "poster": "https://archive.org/download/CosmosLaundromatFirstCycle/__ia_thumb.jpg",
+      "backdrop": "https://archive.org/download/CosmosLaundromatFirstCycle/CosmosLaundromatFirstCycle.thumbs/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29_000585.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/CosmosLaundromatFirstCycle",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
+        "attribution": "Blender Foundation"
+      },
+      "video": {
+        "src": "https://archive.org/download/CosmosLaundromatFirstCycle/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29.mp4",
+        "type": "video/mp4",
+        "durationSeconds": 731,
+        "attribution": "Cosmos Laundromat — Blender Foundation"
+      }
+    }
+  ]
+}

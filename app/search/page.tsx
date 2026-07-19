@@ -4,14 +4,17 @@ import { MediaCard } from "../components/MediaCard";
 import { SiteHeader } from "../components/SiteHeader";
 import { searchImportedMovies } from "@/db/runtime";
 import { searchMovies } from "@/lib/catalog";
+import { maturityAllows } from "@/lib/catalog";
+import { getViewerContext } from "../viewer-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
+  const context = await getViewerContext();
   const [curatedResults, importedResults] = await Promise.all([
-    Promise.resolve(searchMovies(q)),
-    searchImportedMovies(q, 40),
+    Promise.resolve(searchMovies(q).filter((movie) => maturityAllows(movie, context?.profile.maturity ?? "T18"))),
+    context?.profile.isKids ? Promise.resolve([]) : searchImportedMovies(q, 40),
   ]);
   const total = curatedResults.length + importedResults.length;
 

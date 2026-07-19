@@ -1,3 +1,20 @@
+import licensedCatalog from "@/data/licensed_catalog.json";
+
+export type MovieSource = {
+  provider: string;
+  itemUrl: string;
+  licenseName: string;
+  licenseUrl: string;
+  attribution: string;
+};
+
+export type MovieVideo = {
+  src: string;
+  type: string;
+  durationSeconds: number;
+  attribution: string;
+};
+
 export type Movie = {
   id: string;
   title: string;
@@ -17,12 +34,15 @@ export type Movie = {
   trending?: boolean;
   newRelease?: boolean;
   series?: { season: number; episodes: number };
+  durationSeconds?: number;
+  source?: MovieSource;
+  video?: MovieVideo;
 };
 
 const image = (id: string, width: number, height: number) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&h=${height}&q=86`;
 
-export const movies: Movie[] = [
+const curatedMovies: Movie[] = [
   {
     id: "echoes-of-tomorrow",
     title: "Dư Âm Ngày Mai",
@@ -196,6 +216,14 @@ export const movies: Movie[] = [
   },
 ];
 
+export const licensedMovies = licensedCatalog.items as Movie[];
+export const licensedCatalogInfo = {
+  generatedAt: licensedCatalog.generatedAt,
+  source: licensedCatalog.source,
+  licensePolicy: licensedCatalog.licensePolicy,
+};
+export const movies: Movie[] = [...licensedMovies, ...curatedMovies];
+
 export const featuredMovie = movies.find((movie) => movie.featured)!;
 
 export function findMovie(id: string) {
@@ -203,20 +231,59 @@ export function findMovie(id: string) {
 }
 
 export function searchMovies(query: string) {
-  const normalized = query.trim().toLocaleLowerCase("vi");
+  const normalized = normalizeSearchText(query);
   if (!normalized) return movies;
-  return movies.filter((movie) =>
-    [
+  const queryTokens = normalized.split(/\s+/).filter((token) => token.length > 1);
+  return movies.map((movie) => {
+    const haystack = normalizeSearchText([
       movie.title,
       movie.originalTitle ?? "",
       movie.director,
       ...movie.genres,
       ...movie.cast,
-    ]
-      .join(" ")
-      .toLocaleLowerCase("vi")
-      .includes(normalized),
-  );
+      movie.synopsis,
+    ].join(" "));
+    if (haystack.includes(normalized)) return { movie, score: 100 };
+    const words = haystack.split(/\s+/);
+    const matched = queryTokens.filter((token) => words.some((word) =>
+      word.includes(token) || token.includes(word) || editDistanceWithin(token, word, token.length > 5 ? 2 : 1),
+    )).length;
+    return { movie, score: queryTokens.length ? matched / queryTokens.length : 0 };
+  }).filter(({ score }) => score >= .6).sort((a, b) => b.score - a.score).map(({ movie }) => movie);
+}
+
+function editDistanceWithin(a: string, b: string, limit: number) {
+  if (Math.abs(a.length - b.length) > limit) return false;
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const value = Math.min(current[j - 1] + 1, previous[j] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      current.push(value); rowMin = Math.min(rowMin, value);
+    }
+    if (rowMin > limit) return false;
+    previous.splice(0, previous.length, ...current);
+  }
+  return previous[b.length] <= limit;
+}
+
+export function normalizeSearchText(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("vi")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll("đ", "d");
+}
+
+export function maturityAllows(movie: Movie, profileMaturity = "T18") {
+  const rank: Record<string, number> = { P: 0, K: 7, T13: 13, T16: 16, T18: 18 };
+  return (rank[movie.maturity] ?? 18) <= (rank[profileMaturity] ?? 18);
+}
+
+export function filterMoviesForMaturity(catalog: Movie[], profileMaturity = "T18") {
+  return catalog.filter((movie) => maturityAllows(movie, profileMaturity));
 }
 
 export const demoVideo = {
@@ -224,3 +291,17 @@ export const demoVideo = {
   attribution: "Big Buck Bunny — Blender Foundation, Creative Commons",
   durationSeconds: 596,
 };
+
+export function movieVideo(movie: Movie): MovieVideo {
+  return movie.video ?? {
+    src: demoVideo.mp4,
+    type: "video/mp4",
+    durationSeconds: movie.durationSeconds ?? demoVideo.durationSeconds,
+    attribution: demoVideo.attribution,
+  };
+}
+
+export function viewingProgressPercent(movie: Movie, positionSeconds: number) {
+  const duration = movieVideo(movie).durationSeconds;
+  return Math.min(100, Math.max(1, Math.round((positionSeconds / duration) * 100)));
+}

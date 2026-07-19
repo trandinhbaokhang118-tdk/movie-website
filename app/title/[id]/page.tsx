@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Footer } from "../../components/Footer";
 import { ImportedMovieRail } from "../../components/ImportedMovieRail";
@@ -6,9 +7,10 @@ import { MediaRail } from "../../components/MediaRail";
 import { SiteHeader } from "../../components/SiteHeader";
 import { TrailerModal } from "../../components/TrailerModal";
 import { WatchlistButton } from "../../components/WatchlistButton";
+import { ReactionBar } from "../../components/ReactionBar";
 import { chatGPTSignInPath, getChatGPTUser } from "../../chatgpt-auth";
-import { ensureViewer, findImportedMovie, isInWatchlist, listImportedMovies } from "@/db/runtime";
-import { findMovie, movies } from "@/lib/catalog";
+import { ensureViewer, findImportedMovie, getActiveProfile, isInWatchlist, listImportedMovies } from "@/db/runtime";
+import { findMovie, maturityAllows, movies } from "@/lib/catalog";
 import type { ImportedMovie } from "@/lib/tmdb/types";
 
 export const dynamic = "force-dynamic";
@@ -24,16 +26,22 @@ export default async function TitlePage({ params }: { params: Promise<{ id: stri
   }
 
   const user = await getChatGPTUser();
-  const saved = user
-    ? await ensureViewer(user.email, user.displayName).then((viewer) => isInWatchlist(viewer.id, movie.id))
-    : false;
+  if (user) {
+    const viewer = await ensureViewer(user.email, user.displayName);
+    const profile = await getActiveProfile(viewer.id);
+    if (!maturityAllows(movie, profile.maturity)) notFound();
+  }
+  const saved = user ? await ensureViewer(user.email, user.displayName).then(async (viewer) => {
+    const profile = await getActiveProfile(viewer.id);
+    return isInWatchlist(viewer.id, profile.id, movie.id);
+  }) : false;
   const similar = movies.filter((item) => item.id !== movie.id && item.genres.some((genre) => movie.genres.includes(genre)));
 
   return (
     <main>
       <SiteHeader />
       <section className="detail-hero" style={{ "--hero-accent": movie.accent } as React.CSSProperties}>
-        <img className="hero-image" src={movie.backdrop} alt="" />
+        <Image className="hero-image" src={movie.backdrop} alt="" fill priority sizes="100vw" />
         <div className="detail-scrim" />
         <div className="page-shell detail-content">
           <Link className="back-link" href="/browse">← Trở lại thư viện</Link>
@@ -43,12 +51,13 @@ export default async function TitlePage({ params }: { params: Promise<{ id: stri
           <div className="title-meta"><strong>{movie.match}% phù hợp</strong><span>{movie.year}</span><span className="maturity-badge">{movie.maturity}</span><span>{movie.duration}</span><span>HD</span></div>
           <p className="detail-synopsis">{movie.synopsis}</p>
           <div className="hero-actions">
-            <Link className="button button-primary" href={`/watch/${movie.id}`}><span aria-hidden="true">▶</span> Xem ngay</Link>
+            {movie.source && movie.video ? <Link className="button button-primary" href={`/watch/${movie.id}`}><span aria-hidden="true">▶</span> Xem ngay</Link> : <span className="button button-secondary" aria-disabled="true">Chưa có quyền phát</span>}
             <WatchlistButton movieId={movie.id} initialSaved={saved} signInUrl={chatGPTSignInPath(`/title/${movie.id}`)} />
           </div>
         </div>
       </section>
       <div className="page-shell detail-body">
+        <ReactionBar movieId={movie.id} />
         <section className="detail-facts" aria-label="Thông tin phim">
           <div><p>Đạo diễn</p><strong>{movie.director}</strong></div>
           <div><p>Diễn viên</p><strong>{movie.cast.join(", ")}</strong></div>
@@ -81,7 +90,7 @@ function ImportedTitlePage({ movie, related }: { movie: ImportedMovie; related: 
     <main>
       <SiteHeader />
       <section className="detail-hero external-detail-hero">
-        {movie.backdropUrl || movie.posterUrl ? <img className="hero-image" src={movie.backdropUrl ?? movie.posterUrl ?? ""} alt="" /> : <div className="detail-placeholder-backdrop" />}
+        {movie.backdropUrl || movie.posterUrl ? <Image className="hero-image" src={movie.backdropUrl ?? movie.posterUrl ?? ""} alt="" fill priority sizes="100vw" /> : <div className="detail-placeholder-backdrop" />}
         <div className="detail-scrim" />
         <div className="page-shell detail-content">
           <Link className="back-link" href="/browse">← Trở lại thư viện</Link>

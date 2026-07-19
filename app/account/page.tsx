@@ -1,15 +1,19 @@
 import Link from "next/link";
+import { updatePrivacyAction } from "../actions/privacy";
 import { Footer } from "../components/Footer";
 import { SiteHeader } from "../components/SiteHeader";
 import { chatGPTSignOutPath, requireChatGPTUser } from "../chatgpt-auth";
-import { ensureViewer, getAccountStats } from "@/db/runtime";
+import { ensureViewer, getAccountStats, getActiveProfile, getAnalyticsConsent, getSubscription, isAdmin } from "@/db/runtime";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const user = await requireChatGPTUser("/account");
   const viewer = await ensureViewer(user.email, user.displayName);
-  const stats = await getAccountStats(viewer.id);
+  const profile = await getActiveProfile(viewer.id);
+  const [stats, subscription] = await Promise.all([getAccountStats(viewer.id, profile.id), getSubscription(viewer.id)]);
+  const admin = await isAdmin(viewer.id, user.email);
+  const analyticsConsent = await getAnalyticsConsent(viewer.id);
 
   return (
     <main>
@@ -17,8 +21,13 @@ export default async function AccountPage() {
       <section className="settings-page page-shell">
         <div className="settings-heading">
           <div><p className="eyebrow">TÀI KHOẢN CINEWAVE</p><h1>Chào, {user.displayName}</h1><p>Quản lý trải nghiệm xem và dữ liệu của bạn.</p></div>
-          <span className="plan-pill">CineWave Preview</span>
+          <span className="plan-pill">{subscription?.planCode ?? "Preview"} · {profile.name}</span>
         </div>
+        <form className="settings-panel privacy-panel" action={updatePrivacyAction}>
+          <div><p className="eyebrow">RIÊNG TƯ</p><h2>Dữ liệu cải thiện trải nghiệm</h2><p>Dữ liệu vận hành thiết yếu luôn được tối thiểu hóa. Bạn quyết định có cho phép phân tích hành vi để cải thiện đề xuất hay không.</p></div>
+          <label className="checkbox-row"><input name="analyticsConsent" type="checkbox" defaultChecked={analyticsConsent} /> Cho phép analytics cá nhân hóa</label>
+          <button className="button button-secondary" type="submit">Lưu lựa chọn</button>
+        </form>
         <div className="account-stats">
           <article><strong>{stats.profiles}</strong><span>Hồ sơ</span></article>
           <article><strong>{stats.saved}</strong><span>Phim đã lưu</span></article>
@@ -36,7 +45,8 @@ export default async function AccountPage() {
             <Link href="/profiles"><span>Quản lý hồ sơ</span><span>→</span></Link>
             <Link href="/my-list"><span>Danh sách của tôi</span><span>→</span></Link>
             <Link href="/history"><span>Lịch sử xem</span><span>→</span></Link>
-            <Link href="/admin"><span>Không gian vận hành</span><span>→</span></Link>
+            <Link href="/plans"><span>Gói thành viên</span><span>→</span></Link>
+            {admin ? <Link href="/admin"><span>Không gian vận hành</span><span>→</span></Link> : null}
           </section>
         </div>
         <Link className="button button-secondary" href={chatGPTSignOutPath("/")}>Đăng xuất</Link>

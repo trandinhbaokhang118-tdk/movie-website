@@ -15,6 +15,13 @@
       "when": 1784157534022,
       "tag": "0001_big_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784479655233,
+      "tag": "0002_dusty_maelstrom",
+      "breakpoints": true
     }
   ]
 }

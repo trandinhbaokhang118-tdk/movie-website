@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "@/app/chatgpt-auth";
-import { recordCatalogSync } from "@/db/runtime";
+import { ensureViewer, isAdmin, recordCatalogSync } from "@/db/runtime";
 import { syncTmdbCatalog } from "@/lib/tmdb/sync";
 
 export async function POST() {
   const user = await getChatGPTUser();
   if (!user) return NextResponse.json({ error: "Bạn cần đăng nhập để đồng bộ catalog." }, { status: 401 });
+  const viewer = await ensureViewer(user.email, user.displayName);
+  if (!(await isAdmin(viewer.id, user.email))) {
+    return NextResponse.json({ error: "Bạn không có quyền quản trị catalog." }, { status: 403 });
+  }
 
   try {
     const result = await syncTmdbCatalog(18);

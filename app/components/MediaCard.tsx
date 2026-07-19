@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Movie } from "@/lib/catalog";
 
 export function MediaCard({
@@ -16,12 +17,13 @@ export function MediaCard({
     <article className="media-card">
       <Link href={href ?? `/title/${movie.id}`} className="media-card-link">
         <div className="poster-wrap" style={{ "--card-accent": movie.accent } as React.CSSProperties}>
-          <img
+          <Image
             src={movie.poster}
             alt=""
             width="360"
             height="540"
-            loading={priority ? "eager" : "lazy"}
+            priority={priority}
+            sizes="(max-width: 760px) 42vw, 220px"
           />
           <div className="poster-overlay">
             <span className="card-play" aria-hidden="true">▶</span>

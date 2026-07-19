@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { SiteHeader } from "../components/SiteHeader";
 import { CatalogSyncButton } from "../components/CatalogSyncButton";
 import { requireChatGPTUser } from "../chatgpt-auth";
-import { ensureViewer, getImportedCatalogStats } from "@/db/runtime";
+import { ensureViewer, getImportedCatalogStats, isAdmin } from "@/db/runtime";
 import { movies } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const user = await requireChatGPTUser("/admin");
-  await ensureViewer(user.email, user.displayName);
+  const viewer = await ensureViewer(user.email, user.displayName);
+  if (!(await isAdmin(viewer.id, user.email))) notFound();
   const imported = await getImportedCatalogStats();
   const seriesCount = movies.filter((movie) => movie.series).length;
 

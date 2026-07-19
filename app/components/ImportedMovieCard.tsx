@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ImportedMovie } from "@/lib/tmdb/types";
 import { TrailerModal } from "./TrailerModal";
 
@@ -7,7 +8,7 @@ export function ImportedMovieCard({ movie, priority = false }: { movie: Imported
     <article className="imported-card">
       <div className="imported-poster">
         {movie.posterUrl ? (
-          <img src={movie.posterUrl} alt={`Poster ${movie.title}`} loading={priority ? "eager" : "lazy"} />
+          <Image src={movie.posterUrl} alt={`Poster ${movie.title}`} fill priority={priority} sizes="(max-width: 760px) 44vw, 220px" />
         ) : (
           <div className="poster-placeholder">CINEWAVE</div>
         )}

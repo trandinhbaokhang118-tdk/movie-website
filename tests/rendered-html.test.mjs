@@ -11,7 +11,7 @@ test("CineWave production identity replaces every starter marker", async () => {
     read("app/page.tsx"),
     read("package.json"),
   ]);
-  assert.match(layout, /CineWave — Những câu chuyện đáng nhớ/);
+  assert.match(layout, /CineWave — Những câu chuyện thức giấc về đêm/);
   assert.match(layout, /lang="vi"/);
   assert.match(home, /Dư Âm Ngày Mai|featuredMovie/);
   assert.match(home, /<SiteHeader \/>/);
@@ -73,6 +73,22 @@ test("viewing activity supports resume, continue watching, and privacy deletion"
   assert.match(header, /href="\/history"/);
 });
 
+test("licensed catalog data powers real legal playback and typo-tolerant search", async () => {
+  const [catalog, watch, player, crawler] = await Promise.all([
+    read("lib/catalog.ts"),
+    read("app/watch/[id]/page.tsx"),
+    read("app/components/Player.tsx"),
+    read("tools/crawl_movies.py"),
+  ]);
+  assert.match(catalog, /licensed_catalog\.json/);
+  assert.match(catalog, /normalizeSearchText/);
+  assert.doesNotMatch(catalog, /\.pipe\(/);
+  assert.match(watch, /movieVideo\(movie\)/);
+  assert.match(player, /sourceType/);
+  assert.match(crawler, /creative-commons-or-public-domain-only/);
+  assert.match(crawler, /never downloads or republishes commercial movie files/i);
+});
+
 test("storefront ships required accessibility and playback affordances", async () => {
   const [css, player, header, catalog] = await Promise.all([
     read("app/globals.css"),
@@ -82,11 +98,45 @@ test("storefront ships required accessibility and playback affordances", async (
   ]);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);
-  assert.match(css, /--focus: #67e8f9/);
+  assert.match(css, /--focus: #62e7e2/);
   assert.match(player, /<video/);
   assert.match(player, /aria-live="polite"/);
   assert.match(header, /aria-label="Điều hướng chính"/);
   assert.match(catalog, /BigBuckBunny\.mp4/);
+});
+
+test("production controls isolate profiles and authorize playback on the server", async () => {
+  const [schema, runtime, watch, admin, adminRoute, migration] = await Promise.all([
+    read("db/schema.ts"), read("db/runtime.ts"), read("app/watch/[id]/page.tsx"),
+    read("app/admin/page.tsx"), read("app/api/admin/catalog-sync/route.ts"),
+    read("drizzle/0002_dusty_maelstrom.sql"),
+  ]);
+  assert.match(schema, /profileId: text\("profile_id"\)\.notNull/);
+  assert.match(schema, /subscriptions|playbackSessions|contentRights|titleReactions/);
+  assert.match(runtime, /authorizePlayback/);
+  assert.match(runtime, /PROFILE_RESTRICTED|SUBSCRIPTION_REQUIRED|STREAM_LIMIT_REACHED|RIGHTS_NOT_AVAILABLE/);
+  assert.match(watch, /requireChatGPTUser/);
+  assert.match(watch, /authorizePlayback/);
+  assert.match(admin, /isAdmin/);
+  assert.match(adminRoute, /status: 403/);
+  assert.match(migration, /UPDATE `watch_progress` SET `profile_id`/);
+});
+
+test("Midnight Mystique experience includes plans, privacy, reactions, and Night Compass", async () => {
+  const [css, plans, night, privacy, reaction, health, worker] = await Promise.all([
+    read("app/globals.css"), read("app/plans/page.tsx"), read("app/night/page.tsx"),
+    read("app/actions/privacy.ts"), read("app/components/ReactionBar.tsx"),
+    read("app/api/health/route.ts"), read("worker/index.ts"),
+  ]);
+  assert.match(css, /--bg: #05040b/);
+  assert.match(css, /--brand: #8b7cff/);
+  assert.match(plans, /Moon|Eclipse|Constellation/);
+  assert.match(plans, /chế độ sandbox/);
+  assert.match(night, /Night Compass|NIGHT COMPASS/);
+  assert.match(privacy, /updateAnalyticsConsent/);
+  assert.match(reaction, /not_for_me|love/);
+  assert.match(health, /status: "ready"/);
+  assert.match(worker, /content-security-policy/);
 });
 
 test("licensed catalog importer and interaction-gated trailers are wired", async () => {

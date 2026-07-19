@@ -40,7 +40,25 @@ const worker = {
       }, allowedWidths);
     }
 
-    return handler.fetch(request, env, ctx);
+    const response = await handler.fetch(request, env, ctx);
+    const secured = new Response(response.body, response);
+    secured.headers.set("x-content-type-options", "nosniff");
+    secured.headers.set("referrer-policy", "strict-origin-when-cross-origin");
+    secured.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    secured.headers.set("x-frame-options", "SAMEORIGIN");
+    secured.headers.set("content-security-policy", [
+      "default-src 'self'",
+      "img-src 'self' data: https://images.unsplash.com https://image.tmdb.org",
+      "media-src 'self' https://storage.googleapis.com https://archive.org",
+      "frame-src https://www.youtube-nocookie.com",
+      "style-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline'",
+      "connect-src 'self' https://api.themoviedb.org",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'",
+    ].join("; "));
+    return secured;
   },
 };
 

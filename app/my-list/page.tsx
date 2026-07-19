@@ -3,7 +3,7 @@ import { Footer } from "../components/Footer";
 import { MediaCard } from "../components/MediaCard";
 import { SiteHeader } from "../components/SiteHeader";
 import { requireChatGPTUser } from "../chatgpt-auth";
-import { ensureViewer, listWatchlist } from "@/db/runtime";
+import { ensureViewer, getActiveProfile, listWatchlist } from "@/db/runtime";
 import { movies } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 export default async function MyListPage() {
   const user = await requireChatGPTUser("/my-list");
   const viewer = await ensureViewer(user.email, user.displayName);
-  const ids = await listWatchlist(viewer.id);
+  const profile = await getActiveProfile(viewer.id);
+  const ids = await listWatchlist(viewer.id, profile.id);
   const saved = ids.map((id) => movies.find((movie) => movie.id === id)).filter(Boolean);
 
   return (

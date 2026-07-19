@@ -6,18 +6,18 @@ const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin", "vietna
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cinewave.openai.site"),
-  title: { default: "CineWave — Những câu chuyện đáng nhớ", template: "%s · CineWave" },
-  description: "Khám phá và xem những bộ phim tuyển chọn trong trải nghiệm điện ảnh riêng của CineWave.",
+  title: { default: "CineWave — Những câu chuyện thức giấc về đêm", template: "%s · CineWave" },
+  description: "Không gian điện ảnh đêm với hồ sơ riêng, đề xuất theo cảm xúc và trải nghiệm xem an toàn.",
   applicationName: "CineWave",
   openGraph: {
-    title: "CineWave — Những câu chuyện đáng nhớ",
-    description: "Rạp phim cá nhân trên web: chọn nhanh, xem liền mạch, vận hành an toàn.",
+    title: "CineWave — Những câu chuyện thức giấc về đêm",
+    description: "Rạp phim cá nhân trong sắc tím đêm: chọn theo cảm xúc, xem liền mạch và an toàn.",
     type: "website",
     locale: "vi_VN",
     siteName: "CineWave",
-    images: [{ url: "/og.png", width: 1730, height: 910, alt: "CineWave — Những câu chuyện đáng nhớ" }],
+    images: [{ url: "/og.png", width: 1730, height: 910, alt: "CineWave — Những câu chuyện thức giấc về đêm" }],
   },
-  twitter: { card: "summary_large_image", title: "CineWave", description: "Những câu chuyện đáng nhớ, phát theo cách bạn muốn.", images: ["/og.png"] },
+  twitter: { card: "summary_large_image", title: "CineWave", description: "Những câu chuyện thức giấc về đêm.", images: ["/og.png"] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

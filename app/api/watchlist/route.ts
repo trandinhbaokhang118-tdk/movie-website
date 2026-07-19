@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../chatgpt-auth";
-import { ensureViewer, isInWatchlist, setWatchlist } from "@/db/runtime";
+import { ensureViewer, getActiveProfile, isInWatchlist, setWatchlist } from "@/db/runtime";
 import { findMovie } from "@/lib/catalog";
 
 export async function GET(request: Request) {
@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   const movieId = new URL(request.url).searchParams.get("movieId") ?? "";
   if (!findMovie(movieId)) return NextResponse.json({ error: "MOVIE_NOT_FOUND" }, { status: 404 });
   const viewer = await ensureViewer(user.email, user.displayName);
-  return NextResponse.json({ saved: await isInWatchlist(viewer.id, movieId) });
+  const profile = await getActiveProfile(viewer.id);
+  return NextResponse.json({ saved: await isInWatchlist(viewer.id, profile.id, movieId) });
 }
 
 export async function PUT(request: Request) {
@@ -20,6 +21,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "INVALID_REQUEST" }, { status: 400 });
   }
   const viewer = await ensureViewer(user.email, user.displayName);
-  await setWatchlist(viewer.id, payload.movieId, payload.saved);
+  const profile = await getActiveProfile(viewer.id);
+  await setWatchlist(viewer.id, profile.id, payload.movieId, payload.saved);
   return NextResponse.json({ saved: payload.saved });
 }

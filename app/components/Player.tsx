@@ -5,30 +5,37 @@ import Link from "next/link";
 
 export function Player({
   movieId,
+  sessionId,
   title,
   source,
+  sourceType = "video/mp4",
   attribution,
+  qualityLabel = "HD",
   resumeAt = 0,
 }: {
   movieId: string;
+  sessionId: string;
   title: string;
   source: string;
+  sourceType?: string;
   attribution: string;
+  qualityLabel?: string;
   resumeAt?: number;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [started, setStarted] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const [message, setMessage] = useState(resumeAt > 5 ? "Đã tìm thấy vị trí xem trước" : "Sẵn sàng phát");
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const save = () => {
+    const save = (final = false) => {
       if (!Number.isFinite(video.currentTime) || video.currentTime < 1) return;
       void fetch("/api/progress", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ movieId, positionSeconds: Math.floor(video.currentTime) }),
+        body: JSON.stringify({ movieId, sessionId, positionSeconds: Math.floor(video.currentTime), final }),
         keepalive: true,
       });
     };
@@ -41,25 +48,43 @@ export function Player({
       if (document.visibilityState === "hidden") save();
     };
     const interval = window.setInterval(save, 15000);
-    video.addEventListener("pause", save);
-    video.addEventListener("ended", save);
+    const savePause = () => save(false);
+    const saveEnded = () => save(true);
+    const closeOnPageExit = () => save(true);
+    video.addEventListener("pause", savePause);
+    video.addEventListener("ended", saveEnded);
     video.addEventListener("loadedmetadata", resume, { once: true });
     document.addEventListener("visibilitychange", saveWhenHidden);
+    window.addEventListener("pagehide", closeOnPageExit);
     return () => {
       window.clearInterval(interval);
-      video.removeEventListener("pause", save);
-      video.removeEventListener("ended", save);
+      video.removeEventListener("pause", savePause);
+      video.removeEventListener("ended", saveEnded);
       video.removeEventListener("loadedmetadata", resume);
       document.removeEventListener("visibilitychange", saveWhenHidden);
+      window.removeEventListener("pagehide", closeOnPageExit);
     };
-  }, [movieId, resumeAt]);
+  }, [movieId, resumeAt, sessionId]);
+
+  const changeSpeed = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const next = speed === 1 ? 1.25 : speed === 1.25 ? 1.5 : 1;
+    video.playbackRate = next;
+    setSpeed(next);
+  };
+
+  const enterPictureInPicture = async () => {
+    const video = videoRef.current as (HTMLVideoElement & { requestPictureInPicture?: () => Promise<unknown> }) | null;
+    if (video?.requestPictureInPicture) await video.requestPictureInPicture().catch(() => undefined);
+  };
 
   return (
     <div className="player-shell">
       <div className="player-topbar">
         <Link href={`/title/${movieId}`} className="player-back" aria-label={`Quay lại ${title}`}>←</Link>
         <div><p>ĐANG XEM</p><h1>{title}</h1></div>
-        <span className="player-quality">HD · DEMO</span>
+        <span className="player-quality">{qualityLabel}</span>
       </div>
       <video
         ref={videoRef}
@@ -72,7 +97,7 @@ export function Player({
         onPlaying={() => setMessage("Đang phát")}
         onEnded={() => setMessage("Đã xem xong")}
       >
-        <source src={source} type="video/mp4" />
+        <source src={source} type={sourceType} />
         Trình duyệt của bạn chưa hỗ trợ phát video HTML5.
       </video>
       {!started && (
@@ -82,7 +107,11 @@ export function Player({
       )}
       <div className="player-status" aria-live="polite">
         <span>{message}</span>
-        <span>{attribution}</span>
+        <span className="player-tools">
+          <button type="button" onClick={changeSpeed} aria-label="Đổi tốc độ phát">{speed}×</button>
+          <button type="button" onClick={enterPictureInPicture}>Hình trong hình</button>
+          <span>{attribution}</span>
+        </span>
       </div>
     </div>
   );

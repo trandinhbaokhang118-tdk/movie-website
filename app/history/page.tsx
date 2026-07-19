@@ -4,15 +4,16 @@ import { Footer } from "../components/Footer";
 import { MediaCard } from "../components/MediaCard";
 import { SiteHeader } from "../components/SiteHeader";
 import { ClearViewingHistory, RemoveHistoryItem } from "../components/ViewingHistoryActions";
-import { ensureViewer, listViewingActivity } from "@/db/runtime";
-import { demoVideo, movies } from "@/lib/catalog";
+import { ensureViewer, getActiveProfile, listViewingActivity } from "@/db/runtime";
+import { movies, viewingProgressPercent } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function ViewingHistoryPage() {
   const user = await requireChatGPTUser("/history");
   const viewer = await ensureViewer(user.email, user.displayName);
-  const activity = await listViewingActivity(viewer.id);
+  const profile = await getActiveProfile(viewer.id);
+  const activity = await listViewingActivity(viewer.id, profile.id);
   const history = activity.flatMap((item) => {
     const movie = movies.find((candidate) => candidate.id === item.movieId);
     return movie ? [{ ...item, movie }] : [];
@@ -38,7 +39,7 @@ export default async function ViewingHistoryPage() {
                 <MediaCard
                   movie={movie}
                   href={`/watch/${movie.id}`}
-                  progress={progressPercent(positionSeconds)}
+                  progress={viewingProgressPercent(movie, positionSeconds)}
                 />
                 <p className="history-date">Xem gần nhất {formatDate(updatedAt)}</p>
                 <RemoveHistoryItem movieId={movie.id} title={movie.title} />
@@ -57,10 +58,6 @@ export default async function ViewingHistoryPage() {
       <Footer />
     </main>
   );
-}
-
-function progressPercent(positionSeconds: number) {
-  return Math.min(100, Math.max(1, Math.round((positionSeconds / demoVideo.durationSeconds) * 100)));
 }
 
 function formatDate(value: string) {

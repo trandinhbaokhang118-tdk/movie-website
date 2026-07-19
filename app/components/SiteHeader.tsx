@@ -17,6 +17,7 @@ export async function SiteHeader() {
           <Link href="/">Trang chủ</Link>
           <Link href="/browse">Phim</Link>
           <Link href="/browse?type=series">Series</Link>
+          <Link href="/night">Đêm nay</Link>
           <Link href="/my-list">Danh sách của tôi</Link>
           <Link href="/history">Lịch sử</Link>
         </nav>

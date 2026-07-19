@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { createProfileAction } from "../actions/profiles";
+import { createProfileAction, selectProfileAction, updateProfileAction } from "../actions/profiles";
 import { Footer } from "../components/Footer";
 import { SiteHeader } from "../components/SiteHeader";
 import { requireChatGPTUser } from "../chatgpt-auth";
-import { ensureViewer, listProfiles } from "@/db/runtime";
+import { ensureViewer, getActiveProfile, listProfiles } from "@/db/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,7 @@ export default async function ProfilesPage() {
   const user = await requireChatGPTUser("/profiles");
   const viewer = await ensureViewer(user.email, user.displayName);
   const profiles = await listProfiles(viewer.id);
+  const activeProfile = await getActiveProfile(viewer.id);
 
   return (
     <main>
@@ -29,6 +30,23 @@ export default async function ProfilesPage() {
               <h2>{profile.name}</h2>
               <p>{profile.isKids ? "Hồ sơ trẻ em" : `Nội dung đến ${profile.maturity}`}</p>
               <span className="status-badge status-live">Đang hoạt động</span>
+              <form action={selectProfileAction}>
+                <input type="hidden" name="profileId" value={profile.id} />
+                <button className="button button-secondary" type="submit" disabled={activeProfile.id === profile.id}>
+                  {activeProfile.id === profile.id ? "Đang sử dụng" : "Chuyển hồ sơ"}
+                </button>
+              </form>
+              <details className="profile-settings">
+                <summary>Tùy chỉnh trải nghiệm</summary>
+                <form action={updateProfileAction}>
+                  <input type="hidden" name="profileId" value={profile.id} />
+                  <label>Giới hạn độ tuổi<select name="maturity" defaultValue={profile.maturity}><option value="P">Mọi lứa tuổi</option><option value="K">7+</option><option value="T13">13+</option><option value="T16">16+</option><option value="T18">18+</option></select></label>
+                  <label>Phụ đề mặc định<select name="subtitleLanguage" defaultValue="vi"><option value="vi">Tiếng Việt</option><option value="en">English</option><option value="off">Tắt</option></select></label>
+                  <label className="checkbox-row"><input name="autoplayNext" type="checkbox" defaultChecked /> Tự phát tập tiếp</label>
+                  <label className="checkbox-row"><input name="autoplayPreviews" type="checkbox" /> Tự phát bản xem trước</label>
+                  <button className="button button-secondary" type="submit">Lưu cài đặt</button>
+                </form>
+              </details>
             </article>
           ))}
         </div>
