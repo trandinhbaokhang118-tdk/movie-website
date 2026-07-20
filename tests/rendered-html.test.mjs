@@ -139,6 +139,21 @@ test("Midnight Mystique experience includes plans, privacy, reactions, and Night
   assert.match(worker, /content-security-policy/);
 });
 
+test("licensed titles expose a complete rights transparency record", async () => {
+  const [component, detail, catalog] = await Promise.all([
+    read("app/components/RightsTransparency.tsx"),
+    read("app/title/[id]/page.tsx"),
+    read("data/licensed_catalog.json"),
+  ]);
+  for (const field of ["Tác giả/chủ sở hữu", "Nguồn gốc", "Giấy phép", "Bằng chứng tại ngày nhập", "Phạm vi lãnh thổ", "Quyền sử dụng thương mại", "Checksum file video", "TASL"]) {
+    assert.match(component, new RegExp(field));
+  }
+  assert.match(detail, /RightsTransparency/);
+  assert.match(catalog, /"checksumAlgorithm": "SHA-1"/);
+  assert.match(catalog, /"creditLine"/);
+  assert.match(catalog, /"evidenceCapturedAt"/);
+});
+
 test("licensed catalog importer and interaction-gated trailers are wired", async () => {
   const [client, sync, modal, home, adminRoute] = await Promise.all([
     read("lib/tmdb/client.ts"),

@@ -8,9 +8,10 @@ import { SiteHeader } from "../../components/SiteHeader";
 import { TrailerModal } from "../../components/TrailerModal";
 import { WatchlistButton } from "../../components/WatchlistButton";
 import { ReactionBar } from "../../components/ReactionBar";
+import { RightsTransparency } from "../../components/RightsTransparency";
 import { chatGPTSignInPath, getChatGPTUser } from "../../chatgpt-auth";
 import { ensureViewer, findImportedMovie, getActiveProfile, isInWatchlist, listImportedMovies } from "@/db/runtime";
-import { findMovie, maturityAllows, movies } from "@/lib/catalog";
+import { findMovie, licensedCatalogInfo, maturityAllows, movies } from "@/lib/catalog";
 import type { ImportedMovie } from "@/lib/tmdb/types";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +65,7 @@ export default async function TitlePage({ params }: { params: Promise<{ id: stri
           <div><p>Thể loại</p><strong>{movie.genres.join(", ")}</strong></div>
           <div><p>Âm thanh</p><strong>Tiếng Việt · English</strong></div>
         </section>
+        {movie.source ? <RightsTransparency title={movie.title} source={movie.source} importedAt={licensedCatalogInfo.generatedAt} /> : null}
         {movie.series ? (
           <section className="episodes-section">
             <div className="section-heading"><div><p className="eyebrow">MÙA {movie.series.season}</p><h2>Danh sách tập</h2></div><span className="section-count">{movie.series.episodes} tập</span></div>

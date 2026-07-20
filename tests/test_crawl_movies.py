@@ -25,6 +25,12 @@ class MovieCrawlerTests(unittest.TestCase):
         )
         self.assertEqual(selected["name"], "movie-720p.mp4")
 
+    def test_selected_stream_preserves_upstream_checksum(self):
+        selected = crawler.choose_stream(
+            [{"name": "movie.mp4", "size": "60000000", "length": "600", "sha1": "abc123"}]
+        )
+        self.assertEqual(selected["sha1"], "abc123")
+
     def test_archive_url_encodes_spaces_but_preserves_folders(self):
         url = crawler.archive_url("Example", "folder/movie title.mp4")
         self.assertEqual(url, "https://archive.org/download/Example/folder/movie%20title.mp4")

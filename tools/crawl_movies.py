@@ -159,6 +159,7 @@ def choose_stream(files: list[dict[str, Any]]) -> dict[str, Any]:
 
 def crawl_archive() -> dict[str, Any]:
     movies = []
+    captured_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     for identifier, override in CURATED_ARCHIVE_ITEMS.items():
         payload = request_json(ARCHIVE_METADATA.format(identifier=quote(identifier)))
         metadata = payload.get("metadata", {})
@@ -171,6 +172,10 @@ def crawl_archive() -> dict[str, Any]:
             raise RuntimeError(f"{identifier} thiếu thời lượng video.")
         duration_minutes = max(1, round(duration_seconds / 60))
         creator = clean_text(metadata.get("creator")) or "Internet Archive contributor"
+        checksum_algorithm = "SHA-1" if stream.get("sha1") else "MD5" if stream.get("md5") else "Không được nguồn công bố"
+        checksum = str(stream.get("sha1") or stream.get("md5") or "")
+        title = str(override["title"])
+        license_name = "Creative Commons Attribution"
         movie = {
             "id": f"ia-{identifier.lower()}",
             **{key: value for key, value in override.items() if not key.endswith("File")},
@@ -185,6 +190,15 @@ def crawl_archive() -> dict[str, Any]:
                 "licenseName": "Creative Commons Attribution",
                 "licenseUrl": license_url,
                 "attribution": creator,
+                "rightsHolder": creator,
+                "evidenceCapturedAt": captured_at,
+                "territory": "Toàn cầu theo điều khoản giấy phép mở",
+                "validFrom": None,
+                "validUntil": None,
+                "commercialUse": "/by/" in license_url.lower() or "/by-sa/" in license_url.lower(),
+                "checksumAlgorithm": checksum_algorithm,
+                "checksum": checksum,
+                "creditLine": f"{title} — {creator} — Internet Archive — {license_name}",
             },
             "video": {
                 "src": archive_url(identifier, str(stream["name"])),
@@ -196,7 +210,7 @@ def crawl_archive() -> dict[str, Any]:
         movies.append(movie)
     return {
         "source": "Internet Archive metadata API",
-        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "generatedAt": captured_at,
         "licensePolicy": "creative-commons-or-public-domain-only",
         "items": movies,
     }
@@ -267,7 +281,8 @@ def crawl_tmdb(token: str, pages: int, language: str, region: str) -> dict[str, 
 def write_catalog(payload: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(output.suffix + ".tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     temporary.replace(output)
 
 

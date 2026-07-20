@@ -6,6 +6,15 @@ export type MovieSource = {
   licenseName: string;
   licenseUrl: string;
   attribution: string;
+  rightsHolder?: string;
+  evidenceCapturedAt?: string;
+  territory?: string;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  commercialUse?: boolean;
+  checksumAlgorithm?: string;
+  checksum?: string;
+  creditLine?: string;
 };
 
 export type MovieVideo = {

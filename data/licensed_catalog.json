@@ -1,6 +1,6 @@
 {
   "source": "Internet Archive metadata API",
-  "generatedAt": "2026-07-16T07:36:07Z",
+  "generatedAt": "2026-07-20T08:01:40Z",
   "licensePolicy": "creative-commons-or-public-domain-only",
   "items": [
     {
@@ -32,7 +32,16 @@
         "itemUrl": "https://archive.org/details/BigBuckBunny_124",
         "licenseName": "Creative Commons Attribution",
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
-        "attribution": "Internet Archive contributor"
+        "attribution": "Internet Archive contributor",
+        "rightsHolder": "Internet Archive contributor",
+        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "3bdcef855ca17af11e96b8f8dbaeb4d3e54b996a",
+        "creditLine": "Big Buck Bunny — Internet Archive contributor — Internet Archive — Creative Commons Attribution"
       },
       "video": {
         "src": "https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4",
@@ -70,7 +79,16 @@
         "itemUrl": "https://archive.org/details/Sintel",
         "licenseName": "Creative Commons Attribution",
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
-        "attribution": "Blender Foundation"
+        "attribution": "Blender Foundation",
+        "rightsHolder": "Blender Foundation",
+        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "1918a22b3e9829605a3656949b0b5e2b96a4583b",
+        "creditLine": "Sintel — Blender Foundation — Internet Archive — Creative Commons Attribution"
       },
       "video": {
         "src": "https://archive.org/download/Sintel/sintel-2048-stereo_512kb.mp4",
@@ -109,7 +127,16 @@
         "itemUrl": "https://archive.org/details/Tears-of-Steel",
         "licenseName": "Creative Commons Attribution",
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
-        "attribution": "Ton Roosendaal"
+        "attribution": "Ton Roosendaal",
+        "rightsHolder": "Ton Roosendaal",
+        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "c0ad0ca96e1301cb3e4aa2b0216d8f7e4c6e429c",
+        "creditLine": "Tears of Steel — Ton Roosendaal — Internet Archive — Creative Commons Attribution"
       },
       "video": {
         "src": "https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4",
@@ -147,7 +174,16 @@
         "itemUrl": "https://archive.org/details/ElephantsDream",
         "licenseName": "Creative Commons Attribution",
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/us/",
-        "attribution": "Orange Open Movie Project Studio"
+        "attribution": "Orange Open Movie Project Studio",
+        "rightsHolder": "Orange Open Movie Project Studio",
+        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "29b530c0f90eb259014b6004dfbb2788481df6de",
+        "creditLine": "Elephants Dream — Orange Open Movie Project Studio — Internet Archive — Creative Commons Attribution"
       },
       "video": {
         "src": "https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4",
@@ -185,7 +221,16 @@
         "itemUrl": "https://archive.org/details/CosmosLaundromatFirstCycle",
         "licenseName": "Creative Commons Attribution",
         "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
-        "attribution": "Blender Foundation"
+        "attribution": "Blender Foundation",
+        "rightsHolder": "Blender Foundation",
+        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "25c14461f067643515e93f1b89558c8aa78a74c1",
+        "creditLine": "Cosmos Laundromat — Blender Foundation — Internet Archive — Creative Commons Attribution"
       },
       "video": {
         "src": "https://archive.org/download/CosmosLaundromatFirstCycle/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29.mp4",
