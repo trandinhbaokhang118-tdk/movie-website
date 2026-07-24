@@ -3,6 +3,7 @@ import { Footer } from "../components/Footer";
 import { MediaCard } from "../components/MediaCard";
 import { SiteHeader } from "../components/SiteHeader";
 import { getViewerContext } from "../viewer-context";
+import { listWatchlist } from "@/db/runtime";
 import { filterMoviesForMaturity, movies } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function NightPage({ searchParams }: { searchParams: Promis
   const selected = Object.hasOwn(moods, mood) ? mood as keyof typeof moods : "quiet";
   const time = ["45", "90", "120", "all"].includes(minutes) ? minutes : "120";
   const context = await getViewerContext();
+  const savedIds = context ? await listWatchlist(context.viewer.id, context.profile.id) : [];
   const visible = filterMoviesForMaturity(movies, context?.profile.maturity ?? "T18");
   const ranked = visible.map((movie) => ({ movie, score: movie.genres.filter((genre) => moods[selected].genres.includes(genre as never)).length }))
     .filter(({ movie, score }) => score > 0 && (time === "all" || (movie.durationSeconds ?? 7200) <= Number(time) * 60))
@@ -30,6 +32,6 @@ export default async function NightPage({ searchParams }: { searchParams: Promis
     <h1>Đêm nay bạn muốn cảm thấy thế nào?</h1><p className="night-copy">{moods[selected].copy}</p>
     <nav className="mood-selector" aria-label="Chọn tâm trạng">{Object.entries(moods).map(([key, value]) => <Link className={selected === key ? "is-active" : ""} href={`/night?mood=${key}&minutes=${time}`} key={key}>{value.label}</Link>)}</nav>
     <div className="time-selector"><span>Tôi có</span>{[{ key: "45", label: "45 phút" }, { key: "90", label: "90 phút" }, { key: "120", label: "2 giờ" }, { key: "all", label: "Cả đêm" }].map((item) => <Link className={time === item.key ? "is-active" : ""} href={`/night?mood=${selected}&minutes=${item.key}`} key={item.key}>{item.label}</Link>)}</div>
-    <div className="catalog-heading"><h2>La bàn đã tìm thấy</h2><p>{results.length} câu chuyện</p></div><div className="catalog-grid">{results.map((movie, index) => <MediaCard key={movie.id} movie={movie} priority={index < 5} />)}</div>
+    <div className="catalog-heading"><h2>La bàn đã tìm thấy</h2><p>{results.length} câu chuyện</p></div><div className="catalog-grid">{results.map((movie, index) => <MediaCard key={movie.id} movie={movie} priority={index < 5} initialSaved={savedIds.includes(movie.id)} />)}</div>
   </section><Footer /></main>;
 }

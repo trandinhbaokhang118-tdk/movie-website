@@ -1,0 +1,3 @@
+import { listAuditEvents } from "@/db/runtime";
+import { AdminPageHead } from "../AdminPageHead";
+export default async function Page(){const events=await listAuditEvents(20);return <div className="admin-dashboard"><AdminPageHead eyebrow="PLATFORM" title="Cấu hình & nhật ký" description="SEO, email, streaming, API, cờ tính năng và lịch sử vận hành."/><div className="audit-list-v2">{events.map(e=><article key={e.id}><span>✓</span><div><b>{e.action}</b><span>{e.actorEmail} · {e.target}</span></div><time>{new Intl.DateTimeFormat("vi-VN",{dateStyle:"short",timeStyle:"short"}).format(new Date(e.createdAt))}</time></article>)}</div></div>}

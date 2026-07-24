@@ -1,4 +1,10 @@
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+
+export const runtimeMetadata = sqliteTable("runtime_metadata", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
 
 export const users = sqliteTable(
   "users",
@@ -6,8 +12,11 @@ export const users = sqliteTable(
     id: text("id").primaryKey(),
     email: text("email").notNull(),
     displayName: text("display_name").notNull(),
+    passwordHash: text("password_hash"),
+    passwordSalt: text("password_salt"),
     activeProfileId: text("active_profile_id"),
     role: text("role").notNull().default("viewer"),
+    status: text("status").notNull().default("active"),
     analyticsConsent: integer("analytics_consent", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
@@ -22,6 +31,8 @@ export const profiles = sqliteTable(
     userId: text("user_id").notNull(),
     name: text("name").notNull(),
     avatarColor: text("avatar_color").notNull(),
+    avatarUrl: text("avatar_url"),
+    theme: text("theme").notNull().default("cinewave"),
     maturity: text("maturity").notNull().default("T18"),
     isKids: integer("is_kids", { mode: "boolean" }).notNull().default(false),
     locale: text("locale").notNull().default("vi-VN"),
@@ -43,7 +54,11 @@ export const watchlist = sqliteTable(
     movieId: text("movie_id").notNull(),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [uniqueIndex("watchlist_profile_movie_uq").on(table.profileId, table.movieId)],
+  (table) => [
+    uniqueIndex("watchlist_profile_movie_uq").on(table.profileId, table.movieId),
+    index("watchlist_profile_created_idx").on(table.userId, table.profileId, table.createdAt),
+    index("watchlist_created_movie_idx").on(table.createdAt, table.movieId),
+  ],
 );
 
 export const watchProgress = sqliteTable(
@@ -56,7 +71,10 @@ export const watchProgress = sqliteTable(
     positionSeconds: integer("position_seconds").notNull().default(0),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => [uniqueIndex("progress_profile_movie_uq").on(table.profileId, table.movieId)],
+  (table) => [
+    uniqueIndex("progress_profile_movie_uq").on(table.profileId, table.movieId),
+    index("progress_profile_updated_idx").on(table.userId, table.profileId, table.updatedAt),
+  ],
 );
 
 export const subscriptions = sqliteTable("subscriptions", {
@@ -70,15 +88,52 @@ export const subscriptions = sqliteTable("subscriptions", {
   updatedAt: text("updated_at").notNull(),
 });
 
-export const playbackSessions = sqliteTable("playback_sessions", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
-  profileId: text("profile_id").notNull(),
-  movieId: text("movie_id").notNull(),
-  status: text("status").notNull().default("active"),
-  expiresAt: text("expires_at").notNull(),
-  createdAt: text("created_at").notNull(),
-});
+export const paymentInvoices = sqliteTable(
+  "payment_invoices",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    planCode: text("plan_code").notNull(),
+    amountVnd: integer("amount_vnd").notNull(),
+    transferContent: text("transfer_content").notNull(),
+    provider: text("provider").notNull().default("sepay"),
+    status: text("status").notNull().default("pending"),
+    providerTransactionId: text("provider_transaction_id"),
+    referenceCode: text("reference_code"),
+    createdAt: text("created_at").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    paidAt: text("paid_at"),
+  },
+  (table) => [uniqueIndex("payment_invoices_transfer_uq").on(table.transferContent)],
+);
+
+export const paymentEvents = sqliteTable(
+  "payment_events",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    providerTransactionId: text("provider_transaction_id").notNull(),
+    invoiceId: text("invoice_id"),
+    amountVnd: integer("amount_vnd").notNull(),
+    payloadJson: text("payload_json").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [uniqueIndex("payment_events_provider_tx_uq").on(table.provider, table.providerTransactionId)],
+);
+
+export const playbackSessions = sqliteTable(
+  "playback_sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    profileId: text("profile_id").notNull(),
+    movieId: text("movie_id").notNull(),
+    status: text("status").notNull().default("active"),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("playback_created_movie_idx").on(table.createdAt, table.movieId)],
+);
 
 export const titleReactions = sqliteTable(
   "title_reactions",
@@ -89,7 +144,10 @@ export const titleReactions = sqliteTable(
     reaction: text("reaction").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => [uniqueIndex("reaction_profile_movie_uq").on(table.profileId, table.movieId)],
+  (table) => [
+    uniqueIndex("reaction_profile_movie_uq").on(table.profileId, table.movieId),
+    index("reactions_updated_movie_idx").on(table.updatedAt, table.movieId),
+  ],
 );
 
 export const contentRights = sqliteTable("content_rights", {
@@ -112,12 +170,48 @@ export const analyticsEvents = sqliteTable("analytics_events", {
   createdAt: text("created_at").notNull(),
 });
 
+export const authSessions = sqliteTable(
+  "auth_sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+    lastSeenAt: text("last_seen_at").notNull(),
+    userAgent: text("user_agent"),
+    ipAddress: text("ip_address"),
+  },
+  (table) => [uniqueIndex("auth_sessions_token_uq").on(table.tokenHash)],
+);
+
 export const auditEvents = sqliteTable("audit_events", {
   id: text("id").primaryKey(),
   actorEmail: text("actor_email").notNull(),
   action: text("action").notNull(),
   target: text("target").notNull(),
   createdAt: text("created_at").notNull(),
+});
+
+export const managedTitles = sqliteTable("managed_titles", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  originalTitle: text("original_title").notNull(),
+  releaseYear: integer("release_year").notNull(),
+  contentType: text("content_type").notNull().default("movie"),
+  genres: text("genres").notNull(),
+  maturity: text("maturity").notNull().default("T13"),
+  duration: text("duration").notNull(),
+  synopsis: text("synopsis").notNull(),
+  posterUrl: text("poster_url"),
+  videoUrl: text("video_url"),
+  licenseName: text("license_name").notNull(),
+  licenseUrl: text("license_url").notNull(),
+  status: text("status").notNull().default("draft"),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  publishedAt: text("published_at"),
 });
 
 export const importedMovies = sqliteTable(

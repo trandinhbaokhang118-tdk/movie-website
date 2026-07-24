@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/blob-report/
 
 # next.js
 /.next/
@@ -48,5 +51,8 @@ next-env.d.ts
 /dev.stderr.log
 /cinewave-dev.stdout.log
 /cinewave-dev.stderr.log
+/.local-dev.log
+/.local-dev.err.log
+/.codex-preview/
 __pycache__/
 *.py[cod]

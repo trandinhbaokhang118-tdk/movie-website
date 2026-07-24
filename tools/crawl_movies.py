@@ -25,7 +25,7 @@ from urllib.request import Request, urlopen
 ARCHIVE_METADATA = "https://archive.org/metadata/{identifier}"
 ARCHIVE_DOWNLOAD = "https://archive.org/download/{identifier}/{filename}"
 TMDB_API = "https://api.themoviedb.org/3"
-USER_AGENT = "CineWaveCatalogBot/1.0 (+https://cinewave-screening-room.khanghi.chatgpt.site)"
+USER_AGENT = "CineWaveCatalogBot/1.1 (+http://localhost:3000/about)"
 ALLOWED_LICENSE_MARKERS = (
     "creativecommons.org/licenses/",
     "creativecommons.org/publicdomain/",
@@ -103,6 +103,106 @@ CURATED_ARCHIVE_ITEMS: dict[str, dict[str, Any]] = {
         "posterFile": "__ia_thumb.jpg",
         "backdropFile": "CosmosLaundromatFirstCycle.thumbs/Cosmos Laundromat - First Cycle (1080p)_000585.jpg",
     },
+    "sprite-fright-2021": {
+        "title": "Sprite Fright",
+        "originalTitle": "Sprite Fright",
+        "year": 2021,
+        "maturity": "T13",
+        "genres": ["Hoạt hình", "Kinh dị hài", "Phiêu lưu"],
+        "synopsis": "Một nhóm thiếu niên ồn ào bước vào khu rừng biệt lập và chạm trán những sinh vật nấm nhỏ bé nhưng không hề vô hại.",
+        "director": "Matthew Luhn, Hjalti Hjálmarsson",
+        "cast": ["Blender Studio"],
+        "accent": "#ef6f7a",
+        "newRelease": True,
+        "trending": True,
+        "posterFile": "__ia_thumb.jpg",
+        "backdropFile": "sprite-fright-2021.thumbs/Sprite Fright (2021)_000599.jpg",
+        "localVideoPath": "/media/sprite-fright-2021.mp4",
+    },
+    "springopenmovie": {
+        "title": "Spring",
+        "originalTitle": "Spring Open Movie",
+        "year": 2019,
+        "maturity": "P",
+        "genres": ["Hoạt hình", "Kỳ ảo", "Phiêu lưu"],
+        "synopsis": "Một cô bé chăn cừu cùng chú chó trung thành đánh thức mùa xuân và đối đầu với những linh hồn cổ xưa của mùa đông.",
+        "director": "Andy Goralczyk",
+        "cast": ["Blender Animation Studio"],
+        "accent": "#74b58b",
+        "newRelease": True,
+        "posterFile": "__ia_thumb.jpg",
+        "backdropFile": "springopenmovie.thumbs/springopenmovie_000358.jpg",
+    },
+    "wing_it": {
+        "title": "Wing It!",
+        "originalTitle": "Wing It!",
+        "year": 2023,
+        "maturity": "P",
+        "genres": ["Hoạt hình", "Hài", "Khoa học viễn tưởng"],
+        "synopsis": "Một kỹ sư trẻ trên tàu vũ trụ phải ứng biến thật nhanh khi vị khách ngoài hành tinh làm đảo lộn ca trực tưởng như bình thường.",
+        "director": "Rik Schutte",
+        "cast": ["Blender Studio"],
+        "accent": "#67d7d0",
+        "trending": True,
+        "newRelease": True,
+        "posterFile": "__ia_thumb.jpg",
+        "backdropFile": "wing_it.thumbs/wing_it_000182.jpg",
+    },
+    "hero_20260106": {
+        "title": "Hero",
+        "originalTitle": "Hero",
+        "year": 2018,
+        "maturity": "T13",
+        "genres": ["Hoạt hình", "Hành động", "Kỳ ảo"],
+        "synopsis": "Một nghệ sĩ phác thảo nên người hùng bằng nét vẽ 2D rồi dẫn nhân vật của mình bước qua một cuộc chiến giàu nhịp điệu và cảm xúc.",
+        "director": "Daniel Martínez Lara",
+        "cast": ["Blender Studio"],
+        "accent": "#d78375",
+        "trending": True,
+        "posterFile": "__ia_thumb.jpg",
+        "backdropFile": "hero_20260106.thumbs/hero_000057.jpg",
+    },
+    "Caminandes2GranDillama": {
+        "title": "Caminandes 2: Gran Dillama",
+        "originalTitle": "Caminandes 2: Gran Dillama",
+        "year": 2013,
+        "maturity": "P",
+        "genres": ["Hoạt hình", "Hài", "Gia đình"],
+        "synopsis": "Chú lạc đà Koro bày đủ cách vượt qua hàng rào để chạm tới món ăn yêu thích giữa vùng Patagonia đầy gió.",
+        "director": "Pablo Vazquez",
+        "cast": ["Blender Foundation"],
+        "accent": "#e3a64e",
+        "posterFile": "__ia_thumb.jpg",
+        "backdropFile": "Caminandes2GranDillama.thumbs/02_gran_dillama_1080p_000117.jpg",
+    },
+    "CaminandesLlamigos": {
+        "title": "Caminandes 3: Llamigos",
+        "originalTitle": "Caminandes 3: Llamigos",
+        "year": 2016,
+        "maturity": "P",
+        "genres": ["Hoạt hình", "Hài", "Gia đình"],
+        "synopsis": "Koro gặp một chú chim cánh cụt láu lỉnh, mở đầu cho màn tranh giành quả mọng vừa tinh quái vừa đáng yêu.",
+        "director": "Pablo Vazquez",
+        "cast": ["Blender Foundation"],
+        "accent": "#6fb2c9",
+        "newRelease": True,
+        "posterFile": "__ia_thumb.jpg",
+        "backdropFile": "CaminandesLlamigos.thumbs/Caminandes_ Llamigos-1080p_000117.jpg",
+    },
+}
+
+LOCAL_ARTWORK: dict[str, tuple[str, str]] = {
+    "BigBuckBunny_124": ("big-buck-bunny-poster.jpg", "big-buck-bunny-backdrop.jpg"),
+    "Sintel": ("sintel-poster.jpg", "sintel-backdrop.jpg"),
+    "Tears-of-Steel": ("tears-of-steel-poster.jpg", "tears-of-steel-backdrop.jpg"),
+    "ElephantsDream": ("elephants-dream-poster.jpg", "elephants-dream-backdrop.jpg"),
+    "CosmosLaundromatFirstCycle": ("cosmos-laundromat-poster.jpg", "cosmos-laundromat-backdrop.jpg"),
+    "sprite-fright-2021": ("sprite-fright-poster-3d.jpg", "sprite-fright-hero.jpg"),
+    "springopenmovie": ("spring-poster.jpg", "spring-backdrop.jpg"),
+    "wing_it": ("wing-it-poster.jpg", "wing-it-backdrop.jpg"),
+    "hero_20260106": ("hero-poster.jpg", "hero-backdrop.jpg"),
+    "Caminandes2GranDillama": ("caminandes-gran-dillama-poster.jpg", "caminandes-gran-dillama-backdrop.jpg"),
+    "CaminandesLlamigos": ("caminandes-llamigos-poster.jpg", "caminandes-llamigos-backdrop.jpg"),
 }
 
 
@@ -176,14 +276,15 @@ def crawl_archive() -> dict[str, Any]:
         checksum = str(stream.get("sha1") or stream.get("md5") or "")
         title = str(override["title"])
         license_name = "Creative Commons Attribution"
+        poster_file, backdrop_file = LOCAL_ARTWORK[identifier]
         movie = {
             "id": f"ia-{identifier.lower()}",
-            **{key: value for key, value in override.items() if not key.endswith("File")},
+            **{key: value for key, value in override.items() if not key.endswith("File") and key != "localVideoPath"},
             "duration": f"{duration_minutes} phút",
             "durationSeconds": duration_seconds,
             "match": 97 - len(movies),
-            "poster": archive_url(identifier, override["posterFile"]),
-            "backdrop": archive_url(identifier, override["backdropFile"]),
+            "poster": f"/media/artwork/{poster_file}",
+            "backdrop": f"/media/artwork/{backdrop_file}",
             "source": {
                 "provider": "Internet Archive",
                 "itemUrl": f"https://archive.org/details/{quote(identifier)}",
@@ -199,9 +300,11 @@ def crawl_archive() -> dict[str, Any]:
                 "checksumAlgorithm": checksum_algorithm,
                 "checksum": checksum,
                 "creditLine": f"{title} — {creator} — Internet Archive — {license_name}",
+                "localMirror": override.get("localVideoPath"),
             },
             "video": {
-                "src": archive_url(identifier, str(stream["name"])),
+                "src": override.get("localVideoPath") or archive_url(identifier, str(stream["name"])),
+                "fallbackSrc": archive_url(identifier, str(stream["name"])) if override.get("localVideoPath") else None,
                 "type": "video/mp4",
                 "durationSeconds": duration_seconds,
                 "attribution": f"{override['title']} — {creator}",

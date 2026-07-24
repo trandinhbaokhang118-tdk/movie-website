@@ -8,6 +8,8 @@ type TrailerModalProps = {
   videoSrc?: string;
   triggerLabel?: string;
   compact?: boolean;
+  videoStartSeconds?: number;
+  maxPreviewSeconds?: number;
 };
 
 export function TrailerModal({
@@ -16,10 +18,13 @@ export function TrailerModal({
   videoSrc,
   triggerLabel = "Xem trailer",
   compact = false,
+  videoStartSeconds = 0,
+  maxPreviewSeconds,
 }: TrailerModalProps) {
   const [open, setOpen] = useState(false);
   const headingId = useId();
   const closeButton = useRef<HTMLButtonElement>(null);
+  const videoPlayer = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +78,21 @@ export function TrailerModal({
                   allowFullScreen
                 />
               ) : (
-                <video src={videoSrc} controls autoPlay playsInline aria-label={`Trailer demo ${title}`} />
+                <video
+                  ref={videoPlayer}
+                  src={videoSrc}
+                  controls
+                  autoPlay
+                  playsInline
+                  aria-label={`Trailer demo ${title}`}
+                  onLoadedMetadata={(event) => { event.currentTarget.currentTime = videoStartSeconds; }}
+                  onTimeUpdate={(event) => {
+                    if (maxPreviewSeconds && event.currentTarget.currentTime >= videoStartSeconds + maxPreviewSeconds) {
+                      event.currentTarget.pause();
+                      event.currentTarget.currentTime = videoStartSeconds;
+                    }
+                  }}
+                />
               )}
             </div>
           </section>

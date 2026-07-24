@@ -4,28 +4,54 @@ import { Footer } from "./components/Footer";
 import { ImportedMovieRail } from "./components/ImportedMovieRail";
 import { MediaRail } from "./components/MediaRail";
 import { SiteHeader } from "./components/SiteHeader";
-import { getChatGPTUser } from "./chatgpt-auth";
-import { ensureViewer, getActiveProfile, listViewingActivity } from "@/db/runtime";
+import { LandingPage } from "./components/LandingPage";
+import { TrendDiscovery } from "./components/TrendDiscovery";
+import { getViewerContext } from "./viewer-context";
+import { getTrendSnapshots, listProfileReactions, listViewingActivity, listWatchlist, type TrendPeriod, type TrendSnapshot } from "@/db/runtime";
 import { featuredMovie, filterMoviesForMaturity, movies, viewingProgressPercent } from "@/lib/catalog";
 import { importedMoviesForHome } from "@/lib/tmdb/sync";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const user = await getChatGPTUser();
-  const context = user ? await ensureViewer(user.email, user.displayName).then(async (viewer) => {
-    const profile = await getActiveProfile(viewer.id);
-    return { profile, activity: await listViewingActivity(viewer.id, profile.id, 12) };
-  }) : null;
-  const visibleMovies = filterMoviesForMaturity(movies, context?.profile.maturity ?? "T18");
-  const trending = visibleMovies.filter((movie) => movie.trending);
+  const viewerContext = await getViewerContext();
+  if (!viewerContext) return <LandingPage movies={movies.filter((movie) => movie.video && movie.source)} />;
+  const [activity, savedIds, reactions] = await Promise.all([
+    listViewingActivity(viewerContext.viewer.id, viewerContext.profile.id, 30),
+    listWatchlist(viewerContext.viewer.id, viewerContext.profile.id),
+    listProfileReactions(viewerContext.profile.id),
+  ]);
+  const context = { ...viewerContext, activity, savedIds, reactions };
+  const visibleMovies = filterMoviesForMaturity(movies, context.profile.maturity);
   const newReleases = visibleMovies.filter((movie) => movie.newRelease);
-  const watchedGenres = new Set(context?.activity.flatMap((item) => movies.find((movie) => movie.id === item.movieId)?.genres ?? []) ?? []);
-  const forYou = visibleMovies.filter((movie) => !movie.featured).sort((a, b) =>
-    b.genres.filter((genre) => watchedGenres.has(genre)).length - a.genres.filter((genre) => watchedGenres.has(genre)).length,
-  ).slice(0, 7);
-  const importedMovies = context?.profile.isKids ? [] : await importedMoviesForHome();
-  const activity = context?.activity ?? [];
+  const movieById = Object.fromEntries(visibleMovies.map((movie) => [movie.id, movie]));
+  const [trendSnapshotsResult, importedMovies] = await Promise.all([
+    getTrendSnapshots(),
+    context.profile.isKids ? Promise.resolve([]) : importedMoviesForHome(),
+  ]);
+  const { hour: hourTrend, day: dayTrend, week: weekTrend } = trendSnapshotsResult;
+  const visibleIds = new Set(visibleMovies.map((movie) => movie.id));
+  const hiddenTitles = new Set(movies.filter((movie) => !visibleIds.has(movie.id)).map((movie) => movie.title));
+  const sanitizeTrend = (snapshot: TrendSnapshot): TrendSnapshot => ({
+    ...snapshot,
+    ranking: snapshot.ranking.filter((entry) => visibleIds.has(entry.movieId)),
+    hotTags: snapshot.hotTags.filter((tag) => !hiddenTitles.has(tag.label)),
+  });
+  const trendSnapshots: Record<TrendPeriod, TrendSnapshot> = {
+    hour: sanitizeTrend(hourTrend), day: sanitizeTrend(dayTrend), week: sanitizeTrend(weekTrend),
+  };
+  const genreWeights = new Map<string, number>();
+  const addGenres = (movieId: string, weight: number) => movieById[movieId]?.genres.forEach((genre) => genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + weight));
+  context.activity.forEach((item, index) => addGenres(item.movieId, Math.max(1, 4 - index * .12)));
+  context.savedIds.forEach((id) => addGenres(id, 3.5));
+  context.reactions.forEach((item) => addGenres(item.movieId, item.reaction === "love" ? 7 : item.reaction === "like" ? 4 : -6));
+  const trendScore = new Map(dayTrend.ranking.map((item) => [item.movieId, item.score]));
+  const rejected = new Set(context.reactions.filter((item) => item.reaction === "not_for_me").map((item) => item.movieId));
+  const forYou = visibleMovies.filter((movie) => !movie.featured && !rejected.has(movie.id)).sort((a, b) => {
+    const score = (movie: typeof a) => movie.genres.reduce((sum, genre) => sum + (genreWeights.get(genre) ?? 0), 0)
+      + movie.match * .09 + (trendScore.get(movie.id) ?? 0) * .3 + (movie.newRelease ? 2 : 0);
+    return score(b) - score(a);
+  }).slice(0, 8);
   const activityWithMovies = activity.flatMap((item) => {
     const movie = movies.find((candidate) => candidate.id === item.movieId);
     return movie ? [{ movie, progress: viewingProgressPercent(movie, item.positionSeconds) }] : [];
@@ -45,21 +71,22 @@ export default async function Home() {
             movies={continueWatching}
             progressById={progressById}
             watchDirectly
+            savedMovieIds={context.savedIds}
           />
         ) : (
           <section className="continue-banner">
             <div>
               <p className="eyebrow">XEM TIẾP</p>
-              <h2>{user ? "Bắt đầu một câu chuyện mới" : "Câu chuyện của bạn vẫn đang chờ"}</h2>
-              <p>{user ? "Tiến độ xem sẽ xuất hiện tại đây và được đồng bộ an toàn." : "Đăng nhập để đồng bộ tiến độ xem trên mọi thiết bị."}</p>
+              <h2>Bắt đầu một câu chuyện mới</h2>
+              <p>Tiến độ xem sẽ xuất hiện tại đây và được đồng bộ an toàn.</p>
             </div>
-            <Link className="text-link" href={user ? "/browse" : "/account"}>{user ? "Khám phá phim" : "Xem hồ sơ"} <span>→</span></Link>
+            <Link className="text-link" href="/browse">Khám phá phim <span>→</span></Link>
           </section>
         )}
         <ImportedMovieRail movies={importedMovies} />
-        <MediaRail title="Đang thịnh hành" eyebrow="ĐƯỢC XEM NHIỀU TUẦN NÀY" movies={trending} />
-        <MediaRail title="Mới trên CineWave" eyebrow="NHỮNG CÂU CHUYỆN VỪA CẬP BẾN" movies={newReleases} />
-        <MediaRail title="Dành riêng cho bạn" eyebrow="TUYỂN CHỌN THEO CẢM HỨNG" movies={forYou} />
+        <TrendDiscovery snapshots={trendSnapshots} movieMap={movieById} savedMovieIds={context.savedIds} />
+        <MediaRail title="Mới trên CineWave" eyebrow="NHỮNG CÂU CHUYỆN VỪA CẬP BẾN" movies={newReleases} savedMovieIds={context.savedIds} />
+        <MediaRail title="Dự đoán hợp gu tối nay" eyebrow="GỢI Ý TỪ LỊCH SỬ XEM · TIM · TỦ PHIM" movies={forYou} savedMovieIds={context.savedIds} />
       </div>
       <Footer />
     </main>

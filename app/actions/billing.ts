@@ -1,15 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { requireChatGPTUser } from "../chatgpt-auth";
-import { activateSandboxPlan, ensureViewer, recordAudit } from "@/db/runtime";
+import { redirect } from "next/navigation";
+import { requireUser } from "../auth";
+import { createPaymentInvoice, ensureViewer, recordAudit } from "@/db/runtime";
+import { findMembershipPlan } from "@/lib/membership";
 
-export async function activatePlanAction(formData: FormData) {
-  const user = await requireChatGPTUser("/plans");
+export async function createPaymentInvoiceAction(formData: FormData) {
+  const user = await requireUser("/plans");
   const viewer = await ensureViewer(user.email, user.displayName);
-  const planCode = String(formData.get("planCode") ?? "");
-  await activateSandboxPlan(viewer.id, planCode);
-  await recordAudit(user.email, "subscription.sandbox.activated", planCode);
-  revalidatePath("/plans");
-  revalidatePath("/account");
+  const plan = findMembershipPlan(String(formData.get("planCode") ?? ""));
+  if (!plan) redirect("/plans?error=invalid-plan");
+  const invoice = await createPaymentInvoice(viewer.id, plan.code, plan.amountVnd);
+  await recordAudit(user.email, "payment.invoice.created", `${invoice.id}:${plan.code}`);
+  redirect(`/checkout/${invoice.id}`);
 }

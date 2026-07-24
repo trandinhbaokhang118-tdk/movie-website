@@ -13,7 +13,7 @@ export function Footer() {
           <h2>Khám phá</h2>
           <Link href="/browse">Phim & series</Link>
           <Link href="/search">Tìm kiếm</Link>
-          <Link href="/my-list">Danh sách của tôi</Link>
+          <Link href="/my-list">Tủ phim</Link>
         </div>
         <div>
           <h2>Thông tin</h2>

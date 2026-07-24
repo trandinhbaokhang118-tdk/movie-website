@@ -1,0 +1,4 @@
+import { getImportedCatalogStats, listManagedTitles } from "@/db/runtime";
+import { CatalogSyncButton } from "../../components/CatalogSyncButton";
+import { AdminPageHead } from "../AdminPageHead";
+export default async function ContentPage(){const [stats,titles]=await Promise.all([getImportedCatalogStats(),listManagedTitles()]);return <div className="admin-dashboard"><AdminPageHead eyebrow="CONTENT STUDIO" title="Phim & Series" description={`${titles.length} nội dung CMS · ${stats.movies} metadata tham khảo`}/><div className="admin-title-list">{titles.map(t=><article className="managed-title-v2" key={t.id}><header><div><span className={`title-status ${t.status}`}>{t.status}</span><h3>{t.title}</h3><p>{t.releaseYear} · {t.contentType} · {t.genres}</p></div></header></article>)}</div><div className="admin-sync"><CatalogSyncButton/></div></div>}

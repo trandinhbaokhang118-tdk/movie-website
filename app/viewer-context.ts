@@ -1,10 +1,10 @@
-import { getChatGPTUser } from "./chatgpt-auth";
-import { ensureViewer, getActiveProfile } from "@/db/runtime";
+import { cache } from "react";
+import { getCurrentUser } from "./auth";
+import { getActiveProfile } from "@/db/runtime";
 
-export async function getViewerContext() {
-  const user = await getChatGPTUser();
+export const getViewerContext = cache(async () => {
+  const user = await getCurrentUser();
   if (!user) return null;
-  const viewer = await ensureViewer(user.email, user.displayName);
-  const profile = await getActiveProfile(viewer.id);
-  return { user, viewer, profile };
-}
+  const profile = await getActiveProfile(user.id);
+  return { user, viewer: user, profile };
+});

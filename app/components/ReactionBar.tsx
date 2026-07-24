@@ -9,6 +9,7 @@ export function ReactionBar({ movieId }: { movieId: string }) {
     const response = await fetch("/api/reactions", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ movieId, reaction }) });
     if (!response.ok) { setMessage(response.status === 401 ? "Đăng nhập để lưu cảm nhận" : "Chưa thể lưu cảm nhận"); return; }
     setSelected(reaction); setMessage("Đã cập nhật đề xuất dành cho bạn");
+    window.dispatchEvent(new CustomEvent("cinewave:trend-signal", { detail: { movieId, type: reaction } }));
   };
   return <section className="reaction-bar" aria-label="Đánh giá nội dung">
     <div><p className="eyebrow">CẢM NHẬN</p><p aria-live="polite">{message}</p></div>

@@ -1,0 +1,8 @@
+import Link from "next/link";
+import type { ManagedTitle } from "@/db/runtime";
+
+export function ManagedTitleCard({ title }: { title: ManagedTitle }) {
+  const poster = title.posterUrl?.replace(/["'()\\]/g, (character) => encodeURIComponent(character));
+  const detailHref = `/title/${title.id}`;
+  return <article className="media-card managed-card"><div className="media-card-stage"><Link className="media-card-link" href={detailHref}><div className="poster-wrap managed-poster" style={poster ? { backgroundImage: `linear-gradient(180deg, transparent 45%, rgba(5,4,11,.92)), url("${poster}")` } : undefined}><span className="managed-poster-mark">CW</span><span className="media-badge">CMS · {title.status === "published" ? "LIVE" : "DRAFT"}</span></div></Link><div className="media-card-preview"><div className="media-preview-heading"><div><strong>{title.title}</strong><small>Nội dung CineWave</small></div><span>LIVE</span></div><div className="media-preview-actions">{title.videoUrl ? <Link className="media-preview-play" href={`/watch/${title.id}`}><span aria-hidden="true">▶</span> Xem phim</Link> : null}<Link className="media-preview-detail" href={detailHref}><span aria-hidden="true">ⓘ</span> Chi tiết</Link></div><div className="media-preview-meta"><span>{title.releaseYear}</span><span>{title.maturity}</span><span>{title.duration}</span></div><div className="media-preview-genres">{title.genres.split(",").slice(0, 3).map((genre) => <span key={genre}>{genre.trim()}</span>)}</div></div></div><Link className="media-card-copy" href={detailHref}><h3>{title.title}</h3><p>{title.releaseYear} · {title.maturity} · {title.duration}</p></Link></article>;
+}

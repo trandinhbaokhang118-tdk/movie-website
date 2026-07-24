@@ -1,0 +1,2 @@
+import { AdminPageHead } from "../AdminPageHead";
+export default function Page(){return <div className="admin-dashboard"><AdminPageHead eyebrow="PHÁT HÀNH" title="Lịch công chiếu" description="Lập lịch và theo dõi từng nội dung sắp phát hành."/><section className="admin-panel admin-simple-list"><p><b>24/07 · 20:00</b> House of the Dragon — Tập 7</p><p><b>28/07 · 18:30</b> Inside Cinema #12</p></section></div>}

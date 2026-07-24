@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { getCurrentUser } from "@/app/auth";
 import { ensureViewer, isAdmin, recordCatalogSync } from "@/db/runtime";
 import { syncTmdbCatalog } from "@/lib/tmdb/sync";
 
 export async function POST() {
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Bạn cần đăng nhập để đồng bộ catalog." }, { status: 401 });
   const viewer = await ensureViewer(user.email, user.displayName);
   if (!(await isAdmin(viewer.id, user.email))) {

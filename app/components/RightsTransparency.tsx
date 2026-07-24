@@ -13,6 +13,7 @@ export function RightsTransparency({ title, source, importedAt }: { title: strin
         <div><dt>Tên phim</dt><dd>{title}</dd></div>
         <div><dt>Tác giả/chủ sở hữu được công bố</dt><dd>{source.rightsHolder ?? source.attribution}</dd></div>
         <div><dt>Nguồn gốc</dt><dd><a href={source.itemUrl} target="_blank" rel="noreferrer">{source.provider} ↗</a></dd></div>
+        {source.localMirror ? <div><dt>Bản demo cục bộ</dt><dd><a href={source.localMirror}>Phát file đã xác minh →</a></dd></div> : null}
         <div><dt>Giấy phép</dt><dd><a href={source.licenseUrl} target="_blank" rel="noreferrer">{source.licenseName} ↗</a></dd></div>
         <div><dt>Bằng chứng tại ngày nhập</dt><dd>{evidenceDate} · <a href={source.itemUrl} target="_blank" rel="noreferrer">Xem hồ sơ nguồn ↗</a></dd></div>
         <div><dt>Phạm vi lãnh thổ</dt><dd>{source.territory ?? "Theo điều khoản giấy phép nguồn mở"}</dd></div>

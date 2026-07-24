@@ -1,0 +1,2 @@
+import { AdminPageHead } from "../AdminPageHead";
+export default function Page(){return <div className="admin-dashboard"><AdminPageHead eyebrow="SECURITY" title="Sao lưu & bảo mật" description="Theo dõi riêng các lớp bảo vệ, bản sao lưu và khả năng khôi phục."/><section className="admin-panel admin-simple-list"><p><b>Sao lưu tự động</b> · 02:00 hằng ngày · Thành công</p><p><b>Antivirus & malware</b> · An toàn</p><p><b>Danh sách chặn</b> · 128 IP · 7 tài khoản</p></section></div>}

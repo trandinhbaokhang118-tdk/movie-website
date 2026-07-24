@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { getChatGPTUser } from "../../chatgpt-auth";
-import { closePlaybackSession, deleteViewingActivity, ensureViewer, getActiveProfile, recordAnalytics, saveProgress } from "@/db/runtime";
+import { getCurrentUser } from "../../auth";
+import { closePlaybackSession, deleteViewingActivity, ensureViewer, findManagedTitle, getActiveProfile, recordAnalytics, saveProgress } from "@/db/runtime";
 import { findMovie } from "@/lib/catalog";
 
 export async function PUT(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ignored: true }, { status: 202 });
   const payload = (await request.json()) as { movieId?: string; positionSeconds?: number; sessionId?: string; final?: boolean };
-  if (!payload.movieId || !findMovie(payload.movieId) || !Number.isFinite(payload.positionSeconds)) {
+  const knownMovie = payload.movieId ? findMovie(payload.movieId) ?? await findManagedTitle(payload.movieId) : null;
+  if (!payload.movieId || !knownMovie || !Number.isFinite(payload.positionSeconds)) {
     return NextResponse.json({ error: "INVALID_PROGRESS" }, { status: 400 });
   }
   const viewer = await ensureViewer(user.email, user.displayName);
@@ -19,7 +20,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const user = await getChatGPTUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
 
   let payload: { movieId?: string } = {};
@@ -28,7 +29,7 @@ export async function DELETE(request: Request) {
   } catch {
     // An empty body intentionally means clearing the viewer's entire history.
   }
-  if (payload.movieId && !findMovie(payload.movieId)) {
+  if (payload.movieId && !findMovie(payload.movieId) && !(await findManagedTitle(payload.movieId))) {
     return NextResponse.json({ error: "MOVIE_NOT_FOUND" }, { status: 404 });
   }
 

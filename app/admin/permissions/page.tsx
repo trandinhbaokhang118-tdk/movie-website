@@ -1,0 +1,2 @@
+import { AdminPageHead } from "../AdminPageHead";
+export default function Page(){return <div className="admin-dashboard"><AdminPageHead eyebrow="ACCESS CONTROL" title="Vai trò & phân quyền" description="Kiểm soát quyền truy cập theo từng nhóm vận hành."/><section className="admin-panel admin-simple-list"><p><b>Super Admin</b> · Toàn quyền hệ thống</p><p><b>Content Manager</b> · Phim, blog, podcast</p><p><b>Support</b> · Người dùng và khiếu nại</p></section></div>}

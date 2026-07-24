@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireChatGPTUser } from "../chatgpt-auth";
+import { requireUser } from "../auth";
 import { ensureViewer, recordAudit, updateAnalyticsConsent } from "@/db/runtime";
 
 export async function updatePrivacyAction(formData: FormData) {
-  const user = await requireChatGPTUser("/account");
+  const user = await requireUser("/account");
   const viewer = await ensureViewer(user.email, user.displayName);
   const consent = formData.get("analyticsConsent") === "on";
   await updateAnalyticsConsent(viewer.id, consent);

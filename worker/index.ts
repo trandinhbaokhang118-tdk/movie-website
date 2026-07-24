@@ -3,9 +3,11 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 
 interface Env {
-  ASSETS: Fetcher;
+  ASSETS?: Fetcher;
   DB: D1Database;
-  IMAGES: {
+  SUPABASE_URL?: string;
+  SUPABASE_PUBLISHABLE_KEY?: string;
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
@@ -31,12 +33,18 @@ const worker = {
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
+      const images = env.IMAGES;
       return handleImageOptimization(request, {
-        fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
-        transformImage: async (body, { width, format, quality }) => {
-          const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
-          return result.response();
+        fetchAsset: (path) => {
+          const assetRequest = new Request(new URL(path, request.url));
+          return env.ASSETS ? env.ASSETS.fetch(assetRequest) : fetch(assetRequest);
         },
+        ...(images ? {
+          transformImage: async (body: ReadableStream, { width, format, quality }: { width: number; format: string; quality: number }) => {
+            const result = await images.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
+            return result.response();
+          },
+        } : {}),
       }, allowedWidths);
     }
 
@@ -48,12 +56,12 @@ const worker = {
     secured.headers.set("x-frame-options", "SAMEORIGIN");
     secured.headers.set("content-security-policy", [
       "default-src 'self'",
-      "img-src 'self' data: https://images.unsplash.com https://image.tmdb.org",
+      "img-src 'self' data: https://images.unsplash.com https://image.tmdb.org https://archive.org https://img.vietqr.io",
       "media-src 'self' https://storage.googleapis.com https://archive.org",
-      "frame-src https://www.youtube-nocookie.com",
+      "frame-src https://www.youtube-nocookie.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://api.themoviedb.org",
+      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+      "connect-src 'self' https://api.themoviedb.org https://rnhbnkgsqhdtejjdqyui.supabase.co https://challenges.cloudflare.com",
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'self'",

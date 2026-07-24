@@ -15,10 +15,12 @@ export type MovieSource = {
   checksumAlgorithm?: string;
   checksum?: string;
   creditLine?: string;
+  localMirror?: string | null;
 };
 
 export type MovieVideo = {
   src: string;
+  fallbackSrc?: string | null;
   type: string;
   durationSeconds: number;
   attribution: string;

@@ -36,7 +36,7 @@ class MovieCrawlerTests(unittest.TestCase):
         self.assertEqual(url, "https://archive.org/download/Example/folder/movie%20title.mp4")
 
     def test_curated_sources_define_open_license_metadata(self):
-        self.assertGreaterEqual(len(crawler.CURATED_ARCHIVE_ITEMS), 5)
+        self.assertGreaterEqual(len(crawler.CURATED_ARCHIVE_ITEMS), 11)
         for item in crawler.CURATED_ARCHIVE_ITEMS.values():
             self.assertIn("title", item)
             self.assertIn("posterFile", item)

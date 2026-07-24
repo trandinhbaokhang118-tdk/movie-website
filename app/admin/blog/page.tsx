@@ -1,0 +1,2 @@
+import { AdminPageHead } from "../AdminPageHead";
+export default function Page(){return <div className="admin-dashboard"><AdminPageHead eyebrow="EDITORIAL" title="Blog & tin tức" description="Soạn thảo, duyệt và xuất bản bài viết."/><section className="admin-panel admin-simple-list"><p><b>10 phim đáng xem tháng 8</b> · Đã xuất bản</p><p><b>Hậu trường CineWave Original</b> · Bản nháp</p></section></div>}

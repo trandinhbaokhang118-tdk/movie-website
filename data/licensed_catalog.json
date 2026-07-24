@@ -1,6 +1,6 @@
 {
   "source": "Internet Archive metadata API",
-  "generatedAt": "2026-07-20T08:01:40Z",
+  "generatedAt": "2026-07-21T01:39:48Z",
   "licensePolicy": "creative-commons-or-public-domain-only",
   "items": [
     {
@@ -25,8 +25,8 @@
       "duration": "10 phút",
       "durationSeconds": 596,
       "match": 97,
-      "poster": "https://archive.org/download/BigBuckBunny_124/__ia_thumb.jpg",
-      "backdrop": "https://archive.org/download/BigBuckBunny_124/BigBuckBunny_124.thumbs/Content/big_buck_bunny_720p_surround_000165.jpg",
+      "poster": "/media/artwork/big-buck-bunny-poster.jpg",
+      "backdrop": "/media/artwork/big-buck-bunny-backdrop.jpg",
       "source": {
         "provider": "Internet Archive",
         "itemUrl": "https://archive.org/details/BigBuckBunny_124",
@@ -34,17 +34,19 @@
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
         "attribution": "Internet Archive contributor",
         "rightsHolder": "Internet Archive contributor",
-        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "evidenceCapturedAt": "2026-07-20T14:22:44Z",
         "territory": "Toàn cầu theo điều khoản giấy phép mở",
         "validFrom": null,
         "validUntil": null,
         "commercialUse": true,
         "checksumAlgorithm": "SHA-1",
         "checksum": "3bdcef855ca17af11e96b8f8dbaeb4d3e54b996a",
-        "creditLine": "Big Buck Bunny — Internet Archive contributor — Internet Archive — Creative Commons Attribution"
+        "creditLine": "Big Buck Bunny — Internet Archive contributor — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
       },
       "video": {
         "src": "https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4",
+        "fallbackSrc": null,
         "type": "video/mp4",
         "durationSeconds": 596,
         "attribution": "Big Buck Bunny — Internet Archive contributor"
@@ -72,8 +74,8 @@
       "duration": "15 phút",
       "durationSeconds": 888,
       "match": 96,
-      "poster": "https://archive.org/download/Sintel/Poster.jpg",
-      "backdrop": "https://archive.org/download/Sintel/Sintel.thumbs/sintel-2048-stereo_000390.jpg",
+      "poster": "/media/artwork/sintel-poster.jpg",
+      "backdrop": "/media/artwork/sintel-backdrop.jpg",
       "source": {
         "provider": "Internet Archive",
         "itemUrl": "https://archive.org/details/Sintel",
@@ -81,17 +83,19 @@
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
         "attribution": "Blender Foundation",
         "rightsHolder": "Blender Foundation",
-        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "evidenceCapturedAt": "2026-07-20T14:22:44Z",
         "territory": "Toàn cầu theo điều khoản giấy phép mở",
         "validFrom": null,
         "validUntil": null,
         "commercialUse": true,
         "checksumAlgorithm": "SHA-1",
         "checksum": "1918a22b3e9829605a3656949b0b5e2b96a4583b",
-        "creditLine": "Sintel — Blender Foundation — Internet Archive — Creative Commons Attribution"
+        "creditLine": "Sintel — Blender Foundation — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
       },
       "video": {
         "src": "https://archive.org/download/Sintel/sintel-2048-stereo_512kb.mp4",
+        "fallbackSrc": null,
         "type": "video/mp4",
         "durationSeconds": 888,
         "attribution": "Sintel — Blender Foundation"
@@ -120,8 +124,8 @@
       "duration": "12 phút",
       "durationSeconds": 734,
       "match": 95,
-      "poster": "https://archive.org/download/Tears-of-Steel/tos-poster.jpg",
-      "backdrop": "https://archive.org/download/Tears-of-Steel/Tears-of-Steel.thumbs/tears_of_steel_1080p_000589.jpg",
+      "poster": "/media/artwork/tears-of-steel-poster.jpg",
+      "backdrop": "/media/artwork/tears-of-steel-backdrop.jpg",
       "source": {
         "provider": "Internet Archive",
         "itemUrl": "https://archive.org/details/Tears-of-Steel",
@@ -129,17 +133,19 @@
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
         "attribution": "Ton Roosendaal",
         "rightsHolder": "Ton Roosendaal",
-        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "evidenceCapturedAt": "2026-07-20T14:22:44Z",
         "territory": "Toàn cầu theo điều khoản giấy phép mở",
         "validFrom": null,
         "validUntil": null,
         "commercialUse": true,
         "checksumAlgorithm": "SHA-1",
         "checksum": "c0ad0ca96e1301cb3e4aa2b0216d8f7e4c6e429c",
-        "creditLine": "Tears of Steel — Ton Roosendaal — Internet Archive — Creative Commons Attribution"
+        "creditLine": "Tears of Steel — Ton Roosendaal — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
       },
       "video": {
         "src": "https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4",
+        "fallbackSrc": null,
         "type": "video/mp4",
         "durationSeconds": 734,
         "attribution": "Tears of Steel — Ton Roosendaal"
@@ -167,8 +173,8 @@
       "duration": "11 phút",
       "durationSeconds": 654,
       "match": 94,
-      "poster": "https://archive.org/download/ElephantsDream/__ia_thumb.jpg",
-      "backdrop": "https://archive.org/download/ElephantsDream/ElephantsDream.thumbs/ed_hd_000300.jpg",
+      "poster": "/media/artwork/elephants-dream-poster.jpg",
+      "backdrop": "/media/artwork/elephants-dream-backdrop.jpg",
       "source": {
         "provider": "Internet Archive",
         "itemUrl": "https://archive.org/details/ElephantsDream",
@@ -176,17 +182,19 @@
         "licenseUrl": "http://creativecommons.org/licenses/by/3.0/us/",
         "attribution": "Orange Open Movie Project Studio",
         "rightsHolder": "Orange Open Movie Project Studio",
-        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "evidenceCapturedAt": "2026-07-20T14:22:44Z",
         "territory": "Toàn cầu theo điều khoản giấy phép mở",
         "validFrom": null,
         "validUntil": null,
         "commercialUse": true,
         "checksumAlgorithm": "SHA-1",
         "checksum": "29b530c0f90eb259014b6004dfbb2788481df6de",
-        "creditLine": "Elephants Dream — Orange Open Movie Project Studio — Internet Archive — Creative Commons Attribution"
+        "creditLine": "Elephants Dream — Orange Open Movie Project Studio — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
       },
       "video": {
         "src": "https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4",
+        "fallbackSrc": null,
         "type": "video/mp4",
         "durationSeconds": 654,
         "attribution": "Elephants Dream — Orange Open Movie Project Studio"
@@ -214,8 +222,8 @@
       "duration": "12 phút",
       "durationSeconds": 731,
       "match": 93,
-      "poster": "https://archive.org/download/CosmosLaundromatFirstCycle/__ia_thumb.jpg",
-      "backdrop": "https://archive.org/download/CosmosLaundromatFirstCycle/CosmosLaundromatFirstCycle.thumbs/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29_000585.jpg",
+      "poster": "/media/artwork/cosmos-laundromat-poster.jpg",
+      "backdrop": "/media/artwork/cosmos-laundromat-backdrop.jpg",
       "source": {
         "provider": "Internet Archive",
         "itemUrl": "https://archive.org/details/CosmosLaundromatFirstCycle",
@@ -223,20 +231,311 @@
         "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
         "attribution": "Blender Foundation",
         "rightsHolder": "Blender Foundation",
-        "evidenceCapturedAt": "2026-07-20T08:01:40Z",
+        "evidenceCapturedAt": "2026-07-20T14:22:44Z",
         "territory": "Toàn cầu theo điều khoản giấy phép mở",
         "validFrom": null,
         "validUntil": null,
         "commercialUse": true,
         "checksumAlgorithm": "SHA-1",
         "checksum": "25c14461f067643515e93f1b89558c8aa78a74c1",
-        "creditLine": "Cosmos Laundromat — Blender Foundation — Internet Archive — Creative Commons Attribution"
+        "creditLine": "Cosmos Laundromat — Blender Foundation — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
       },
       "video": {
         "src": "https://archive.org/download/CosmosLaundromatFirstCycle/Cosmos%20Laundromat%20-%20First%20Cycle%20%281080p%29.mp4",
+        "fallbackSrc": null,
         "type": "video/mp4",
         "durationSeconds": 731,
         "attribution": "Cosmos Laundromat — Blender Foundation"
+      }
+    },
+    {
+      "id": "ia-sprite-fright-2021",
+      "title": "Sprite Fright",
+      "originalTitle": "Sprite Fright",
+      "year": 2021,
+      "maturity": "T13",
+      "genres": [
+        "Hoạt hình",
+        "Kinh dị hài",
+        "Phiêu lưu"
+      ],
+      "synopsis": "Một nhóm thiếu niên ồn ào bước vào khu rừng biệt lập và chạm trán những sinh vật nấm nhỏ bé nhưng không hề vô hại.",
+      "director": "Matthew Luhn, Hjalti Hjálmarsson",
+      "cast": [
+        "Blender Studio"
+      ],
+      "accent": "#ef6f7a",
+      "newRelease": true,
+      "trending": true,
+      "duration": "10 phút",
+      "durationSeconds": 630,
+      "match": 92,
+      "poster": "/media/artwork/sprite-fright-poster-3d.jpg",
+      "backdrop": "/media/artwork/sprite-fright-hero.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/sprite-fright-2021",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "Blender Studio",
+        "rightsHolder": "Blender Studio",
+        "evidenceCapturedAt": "2026-07-20T14:22:44Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "b1ff951fbf2af55ee8d6ef0ed4879219be230e6e",
+        "creditLine": "Sprite Fright — Blender Studio — Internet Archive — Creative Commons Attribution",
+        "localMirror": "/media/sprite-fright-2021.mp4"
+      },
+      "video": {
+        "src": "/media/sprite-fright-2021.mp4",
+        "fallbackSrc": "https://archive.org/download/sprite-fright-2021/Sprite%20Fright%20%282021%29.mp4",
+        "type": "video/mp4",
+        "durationSeconds": 630,
+        "attribution": "Sprite Fright — Blender Studio"
+      }
+    },
+    {
+      "id": "ia-springopenmovie",
+      "title": "Spring",
+      "originalTitle": "Spring Open Movie",
+      "year": 2019,
+      "maturity": "P",
+      "genres": [
+        "Hoạt hình",
+        "Kỳ ảo",
+        "Phiêu lưu"
+      ],
+      "synopsis": "Một cô bé chăn cừu cùng chú chó trung thành đánh thức mùa xuân và đối đầu với những linh hồn cổ xưa của mùa đông.",
+      "director": "Andy Goralczyk",
+      "cast": [
+        "Blender Animation Studio"
+      ],
+      "accent": "#74b58b",
+      "newRelease": true,
+      "duration": "8 phút",
+      "durationSeconds": 464,
+      "match": 91,
+      "poster": "/media/artwork/spring-poster.jpg",
+      "backdrop": "/media/artwork/spring-backdrop.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/springopenmovie",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "Blender Animation Studio",
+        "rightsHolder": "Blender Animation Studio",
+        "evidenceCapturedAt": "2026-07-21T01:39:48Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "4c8829fb741770bf2f749bad6780cffcf6399c1f",
+        "creditLine": "Spring — Blender Animation Studio — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
+      },
+      "video": {
+        "src": "https://archive.org/download/springopenmovie/springopenmovie.ia.mp4",
+        "fallbackSrc": null,
+        "type": "video/mp4",
+        "durationSeconds": 464,
+        "attribution": "Spring — Blender Animation Studio"
+      }
+    },
+    {
+      "id": "ia-wing_it",
+      "title": "Wing It!",
+      "originalTitle": "Wing It!",
+      "year": 2023,
+      "maturity": "P",
+      "genres": [
+        "Hoạt hình",
+        "Hài",
+        "Khoa học viễn tưởng"
+      ],
+      "synopsis": "Một kỹ sư trẻ trên tàu vũ trụ phải ứng biến thật nhanh khi vị khách ngoài hành tinh làm đảo lộn ca trực tưởng như bình thường.",
+      "director": "Rik Schutte",
+      "cast": [
+        "Blender Studio"
+      ],
+      "accent": "#67d7d0",
+      "trending": true,
+      "newRelease": true,
+      "duration": "4 phút",
+      "durationSeconds": 238,
+      "match": 90,
+      "poster": "/media/artwork/wing-it-poster.jpg",
+      "backdrop": "/media/artwork/wing-it-backdrop.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/wing_it",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "Blender Studio / Rik Schutte",
+        "rightsHolder": "Blender Studio / Rik Schutte",
+        "evidenceCapturedAt": "2026-07-21T01:39:48Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "b8034efa9aa24e4f84be77e9314541283d6b1be9",
+        "creditLine": "Wing It! — Blender Studio / Rik Schutte — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
+      },
+      "video": {
+        "src": "https://archive.org/download/wing_it/wing_it.ia.mp4",
+        "fallbackSrc": null,
+        "type": "video/mp4",
+        "durationSeconds": 238,
+        "attribution": "Wing It! — Blender Studio / Rik Schutte"
+      }
+    },
+    {
+      "id": "ia-hero_20260106",
+      "title": "Hero",
+      "originalTitle": "Hero",
+      "year": 2018,
+      "maturity": "T13",
+      "genres": [
+        "Hoạt hình",
+        "Hành động",
+        "Kỳ ảo"
+      ],
+      "synopsis": "Một nghệ sĩ phác thảo nên người hùng bằng nét vẽ 2D rồi dẫn nhân vật của mình bước qua một cuộc chiến giàu nhịp điệu và cảm xúc.",
+      "director": "Daniel Martínez Lara",
+      "cast": [
+        "Blender Studio"
+      ],
+      "accent": "#d78375",
+      "trending": true,
+      "duration": "4 phút",
+      "durationSeconds": 237,
+      "match": 89,
+      "poster": "/media/artwork/hero-poster.jpg",
+      "backdrop": "/media/artwork/hero-backdrop.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/hero_20260106",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "Blender Studio / Daniel Martinez Lara",
+        "rightsHolder": "Blender Studio / Daniel Martinez Lara",
+        "evidenceCapturedAt": "2026-07-21T01:39:48Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "71b67572802b55e915d8c042dfe5c7cc31acd0ca",
+        "creditLine": "Hero — Blender Studio / Daniel Martinez Lara — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
+      },
+      "video": {
+        "src": "https://archive.org/download/hero_20260106/hero.ia.mp4",
+        "fallbackSrc": null,
+        "type": "video/mp4",
+        "durationSeconds": 237,
+        "attribution": "Hero — Blender Studio / Daniel Martinez Lara"
+      }
+    },
+    {
+      "id": "ia-caminandes2grandillama",
+      "title": "Caminandes 2: Gran Dillama",
+      "originalTitle": "Caminandes 2: Gran Dillama",
+      "year": 2013,
+      "maturity": "P",
+      "genres": [
+        "Hoạt hình",
+        "Hài",
+        "Gia đình"
+      ],
+      "synopsis": "Chú lạc đà Koro bày đủ cách vượt qua hàng rào để chạm tới món ăn yêu thích giữa vùng Patagonia đầy gió.",
+      "director": "Pablo Vazquez",
+      "cast": [
+        "Blender Foundation"
+      ],
+      "accent": "#e3a64e",
+      "duration": "2 phút",
+      "durationSeconds": 146,
+      "match": 88,
+      "poster": "/media/artwork/caminandes-gran-dillama-poster.jpg",
+      "backdrop": "/media/artwork/caminandes-gran-dillama-backdrop.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/Caminandes2GranDillama",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
+        "attribution": "Pablo Vazquez",
+        "rightsHolder": "Pablo Vazquez",
+        "evidenceCapturedAt": "2026-07-21T01:39:48Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "24b752599f3e265dd0b946682e94f2888754dba2",
+        "creditLine": "Caminandes 2: Gran Dillama — Pablo Vazquez — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
+      },
+      "video": {
+        "src": "https://archive.org/download/Caminandes2GranDillama/02_gran_dillama_1080p.mp4",
+        "fallbackSrc": null,
+        "type": "video/mp4",
+        "durationSeconds": 146,
+        "attribution": "Caminandes 2: Gran Dillama — Pablo Vazquez"
+      }
+    },
+    {
+      "id": "ia-caminandesllamigos",
+      "title": "Caminandes 3: Llamigos",
+      "originalTitle": "Caminandes 3: Llamigos",
+      "year": 2016,
+      "maturity": "P",
+      "genres": [
+        "Hoạt hình",
+        "Hài",
+        "Gia đình"
+      ],
+      "synopsis": "Koro gặp một chú chim cánh cụt láu lỉnh, mở đầu cho màn tranh giành quả mọng vừa tinh quái vừa đáng yêu.",
+      "director": "Pablo Vazquez",
+      "cast": [
+        "Blender Foundation"
+      ],
+      "accent": "#6fb2c9",
+      "newRelease": true,
+      "duration": "2 phút",
+      "durationSeconds": 150,
+      "match": 87,
+      "poster": "/media/artwork/caminandes-llamigos-poster.jpg",
+      "backdrop": "/media/artwork/caminandes-llamigos-backdrop.jpg",
+      "source": {
+        "provider": "Internet Archive",
+        "itemUrl": "https://archive.org/details/CaminandesLlamigos",
+        "licenseName": "Creative Commons Attribution",
+        "licenseUrl": "http://creativecommons.org/licenses/by/3.0/",
+        "attribution": "Blender Foundation",
+        "rightsHolder": "Blender Foundation",
+        "evidenceCapturedAt": "2026-07-21T01:39:48Z",
+        "territory": "Toàn cầu theo điều khoản giấy phép mở",
+        "validFrom": null,
+        "validUntil": null,
+        "commercialUse": true,
+        "checksumAlgorithm": "SHA-1",
+        "checksum": "421a2d931d3994030ce7589cced5a1ee04187e2b",
+        "creditLine": "Caminandes 3: Llamigos — Blender Foundation — Internet Archive — Creative Commons Attribution",
+        "localMirror": null
+      },
+      "video": {
+        "src": "https://archive.org/download/CaminandesLlamigos/Caminandes_%20Llamigos-1080p.mp4",
+        "fallbackSrc": null,
+        "type": "video/mp4",
+        "durationSeconds": 150,
+        "attribution": "Caminandes 3: Llamigos — Blender Foundation"
       }
     }
   ]

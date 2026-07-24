@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { requireChatGPTUser } from "../chatgpt-auth";
+import { requireUser } from "../auth";
 import { Footer } from "../components/Footer";
 import { MediaCard } from "../components/MediaCard";
 import { SiteHeader } from "../components/SiteHeader";
 import { ClearViewingHistory, RemoveHistoryItem } from "../components/ViewingHistoryActions";
-import { ensureViewer, getActiveProfile, listViewingActivity } from "@/db/runtime";
+import { ensureViewer, getActiveProfile, listViewingActivity, listWatchlist } from "@/db/runtime";
 import { movies, viewingProgressPercent } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function ViewingHistoryPage() {
-  const user = await requireChatGPTUser("/history");
+  const user = await requireUser("/history");
   const viewer = await ensureViewer(user.email, user.displayName);
   const profile = await getActiveProfile(viewer.id);
-  const activity = await listViewingActivity(viewer.id, profile.id);
+  const [activity, savedIds] = await Promise.all([listViewingActivity(viewer.id, profile.id), listWatchlist(viewer.id, profile.id)]);
   const history = activity.flatMap((item) => {
     const movie = movies.find((candidate) => candidate.id === item.movieId);
     return movie ? [{ ...item, movie }] : [];
@@ -40,6 +40,7 @@ export default async function ViewingHistoryPage() {
                   movie={movie}
                   href={`/watch/${movie.id}`}
                   progress={viewingProgressPercent(movie, positionSeconds)}
+                  initialSaved={savedIds.includes(movie.id)}
                 />
                 <p className="history-date">Xem gần nhất {formatDate(updatedAt)}</p>
                 <RemoveHistoryItem movieId={movie.id} title={movie.title} />

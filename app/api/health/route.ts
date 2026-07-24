@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import { ensureDatabase } from "@/db/runtime";
+import { checkSupabase } from "@/lib/supabase/rest";
 
 export async function GET() {
   const startedAt = Date.now();
   try {
-    await ensureDatabase();
-    return NextResponse.json({ status: "ready", database: "ready", latencyMs: Date.now() - startedAt }, {
-      headers: { "cache-control": "no-store" },
+    const [, supabase] = await Promise.all([ensureDatabase(), checkSupabase()]);
+    return NextResponse.json({
+      status: "ready",
+      database: "ready",
+      supabase: supabase.status,
+      latencyMs: Date.now() - startedAt,
+      supabaseLatencyMs: supabase.latencyMs,
+    }, {
+      headers: {
+        "cache-control": "no-store",
+        "server-timing": `supabase;dur=${supabase.latencyMs}`,
+      },
     });
   } catch {
     return NextResponse.json({ status: "degraded", database: "unavailable" }, {
