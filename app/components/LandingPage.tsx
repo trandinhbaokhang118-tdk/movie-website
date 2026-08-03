@@ -6,6 +6,7 @@ import { AuthExperience } from "./AuthExperience";
 import { getTurnstileSiteKey, shouldRenderTurnstileChallenge } from "../turnstile";
 import { HeaderSearch } from "./HeaderSearch";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { PosterArtwork } from "./PosterArtwork";
 import { getCurrentLocale } from "../i18n/server";
 
 const benefits = [
@@ -71,7 +72,7 @@ export async function LandingPage({ movies }: { movies: Movie[] }) {
               {trendingMovies.map((movie, index) => (
                 <Link className="ranking-card" href={`/title/${movie.id}`} aria-label={`Hạng ${index + 1} — ${movie.title}`} key={movie.id}>
                   <span className="ranking-number" aria-hidden="true">{index + 1}</span>
-                  <div><Image src={movie.poster} alt={`Poster ${movie.title}`} fill sizes="(max-width: 760px) 46vw, 230px" /><span className="ranking-play">▶</span></div>
+                  <div><PosterArtwork src={movie.poster} title={movie.title} alt={`Poster ${movie.title}`} sizes="(max-width: 760px) 46vw, 230px" /><span className="ranking-play">▶</span></div>
                   <h3>{movie.title}</h3>
                 </Link>
               ))}
@@ -79,7 +80,7 @@ export async function LandingPage({ movies }: { movies: Movie[] }) {
                 {trendingMovies.map((movie, index) => (
                   <Link className="ranking-card" href={`/title/${movie.id}`} tabIndex={-1} key={`duplicate-${movie.id}`}>
                     <span className="ranking-number" aria-hidden="true">{index + 1}</span>
-                    <div><Image src={movie.poster} alt="" fill sizes="(max-width: 760px) 46vw, 230px" /><span className="ranking-play">▶</span></div>
+                    <div><PosterArtwork src={movie.poster} title={movie.title} alt="" sizes="(max-width: 760px) 46vw, 230px" /><span className="ranking-play">▶</span></div>
                     <h3>{movie.title}</h3>
                   </Link>
                 ))}

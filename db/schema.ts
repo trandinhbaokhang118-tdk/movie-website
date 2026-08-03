@@ -193,6 +193,29 @@ export const auditEvents = sqliteTable("audit_events", {
   createdAt: text("created_at").notNull(),
 });
 
+export const rateLimits = sqliteTable("rate_limits", {
+  key: text("key").primaryKey(),
+  scope: text("scope").notNull(),
+  count: integer("count").notNull().default(0),
+  windowStartedAt: text("window_started_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [index("rate_limits_expires_idx").on(table.expiresAt)]);
+
+export const mediaAssets = sqliteTable("media_assets", {
+  id: text("id").primaryKey(),
+  storageKey: text("storage_key").notNull(),
+  kind: text("kind").notNull(),
+  contentType: text("content_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  originalName: text("original_name").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  createdAt: text("created_at").notNull(),
+}, (table) => [
+  uniqueIndex("media_assets_storage_key_uq").on(table.storageKey),
+  index("media_assets_created_idx").on(table.createdAt),
+]);
+
 export const managedTitles = sqliteTable("managed_titles", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
@@ -205,6 +228,7 @@ export const managedTitles = sqliteTable("managed_titles", {
   synopsis: text("synopsis").notNull(),
   posterUrl: text("poster_url"),
   videoUrl: text("video_url"),
+  subtitleUrl: text("subtitle_url"),
   licenseName: text("license_name").notNull(),
   licenseUrl: text("license_url").notNull(),
   status: text("status").notNull().default("draft"),
@@ -212,7 +236,36 @@ export const managedTitles = sqliteTable("managed_titles", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   publishedAt: text("published_at"),
+  scheduledAt: text("scheduled_at"),
 });
+
+export const editorialContents = sqliteTable(
+  "editorial_contents",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull(),
+    excerpt: text("excerpt").notNull(),
+    body: text("body").notNull(),
+    category: text("category").notNull(),
+    coverUrl: text("cover_url"),
+    mediaUrl: text("media_url"),
+    scheduledAt: text("scheduled_at"),
+    status: text("status").notNull().default("draft"),
+    viewCount: integer("view_count").notNull().default(0),
+    engagementCount: integer("engagement_count").notNull().default(0),
+    completionRate: integer("completion_rate").notNull().default(0),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    publishedAt: text("published_at"),
+  },
+  (table) => [
+    uniqueIndex("editorial_contents_slug_uq").on(table.slug),
+    index("editorial_contents_kind_status_idx").on(table.kind, table.status, table.updatedAt),
+  ],
+);
 
 export const importedMovies = sqliteTable(
   "imported_movies",

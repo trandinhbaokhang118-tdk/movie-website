@@ -21,6 +21,7 @@ export function Player({
   attribution,
   qualityLabel = "HD",
   resumeAt = 0,
+  subtitles = [],
 }: {
   movieId: string;
   sessionId: string;
@@ -31,9 +32,11 @@ export function Player({
   attribution: string;
   qualityLabel?: string;
   resumeAt?: number;
+  subtitles?: Array<{ src: string; language: string; label: string }>;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<import("hls.js").default | null>(null);
   const hideTimerRef = useRef<number | null>(null);
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -44,12 +47,44 @@ export function Player({
   const [muted, setMuted] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [quality, setQuality] = useState("auto");
+  const [qualityLevels, setQualityLevels] = useState<Array<{ index: number; height: number }>>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("fit");
   const [pictureMode, setPictureMode] = useState<PictureMode>("standard");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [message, setMessage] = useState(resumeAt > 5 ? "Đã tìm thấy vị trí xem trước" : "Sẵn sàng phát");
+  const [activeSubtitle, setActiveSubtitle] = useState(subtitles.length ? 0 : -1);
+  const isHls = sourceType.includes("mpegurl") || /\.m3u8(?:$|\?)/i.test(source);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isHls) return;
+    let disposed = false;
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = source;
+      return () => { video.removeAttribute("src"); video.load(); };
+    }
+    void import("hls.js").then(({ default: Hls }) => {
+      if (disposed || !Hls.isSupported()) { setMessage("Trình duyệt chưa hỗ trợ nguồn HLS này"); return; }
+      const hls = new Hls({ enableWorker: true, backBufferLength: 90, maxBufferLength: 30 });
+      hlsRef.current = hls;
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(source));
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+        const levels = data.levels.map((level, index) => ({ index, height: level.height || 0 })).filter((level) => level.height > 0);
+        setQualityLevels(levels.filter((level, index) => levels.findIndex((candidate) => candidate.height === level.height) === index));
+        setMessage("HLS thích ứng đã sẵn sàng");
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { setMessage("Mạng gián đoạn, đang thử lại…"); hls.startLoad(); }
+        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { setMessage("Đang phục hồi luồng phát…"); hls.recoverMediaError(); }
+        else { setMessage("Không thể phát nguồn HLS này"); hls.destroy(); }
+      });
+    });
+    return () => { disposed = true; hlsRef.current?.destroy(); hlsRef.current = null; };
+  }, [isHls, source]);
 
   const scheduleControls = useCallback((force = false) => {
     setControlsVisible(true);
@@ -155,6 +190,19 @@ export function Player({
     setMuted(next === 0);
   };
 
+  const changeSubtitle = (index: number) => {
+    setTextTrackMode(videoRef.current, index);
+    setActiveSubtitle(index);
+    setMessage(index >= 0 ? `Đã bật phụ đề ${subtitles[index]?.label ?? ""}` : "Đã tắt phụ đề");
+  };
+
+  const changeQuality = (value: string) => {
+    const hls = hlsRef.current;
+    if (hls) hls.currentLevel = value === "auto" ? -1 : Number(value);
+    setQuality(value);
+    setMessage(value === "auto" ? "Chất lượng tự động theo đường truyền" : `Đã chọn ${qualityLevels.find((level) => String(level.index) === value)?.height ?? ""}p`);
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).matches("button, input, a")) return;
     if (event.key === " " || event.key.toLowerCase() === "k") { event.preventDefault(); void togglePlay(); }
@@ -193,8 +241,9 @@ export function Player({
         onVolumeChange={(event) => { setVolume(event.currentTarget.volume); setMuted(event.currentTarget.muted); }}
         onEnded={() => { setPlaying(false); setMessage("Đã xem xong"); setControlsVisible(true); }}
       >
-        <source src={source} type={sourceType} />
-        {fallbackSource && fallbackSource !== source ? <source src={fallbackSource} type={sourceType} /> : null}
+        {!isHls ? <source src={source} type={sourceType} /> : null}
+        {!isHls && fallbackSource && fallbackSource !== source ? <source src={fallbackSource} type={sourceType} /> : null}
+        {subtitles.map((subtitle, index) => <track key={`${subtitle.language}-${subtitle.src}`} kind="subtitles" src={subtitle.src} srcLang={subtitle.language} label={subtitle.label} default={index === 0} />)}
         Trình duyệt của bạn chưa hỗ trợ phát video HTML5.
       </video>
 
@@ -207,7 +256,7 @@ export function Player({
           <p>ĐANG XEM</p>
           <h1>{title}</h1>
         </div>
-        <span className="player-quality-badge"><i />{quality === "auto" ? "TỰ ĐỘNG" : qualityLabel}</span>
+        <span className="player-quality-badge"><i />{quality === "auto" ? "TỰ ĐỘNG" : `${qualityLevels.find((level)=>String(level.index)===quality)?.height ?? qualityLabel}P`}</span>
       </header>
 
       {!started && (
@@ -273,15 +322,15 @@ export function Player({
             <button type="button" onClick={() => { setSettingsOpen(false); scheduleControls(); }} aria-label="Đóng cài đặt">×</button>
           </div>
 
-          <SettingGroup title="Chất lượng" meta="Theo nguồn phim">
-            <OptionButton label={`Tự động (${qualityLabel})`} active={quality === "auto"} onClick={() => { setQuality("auto"); setMessage("Chất lượng tự động theo đường truyền"); }} />
-            <OptionButton label={`${qualityLabel} · Nguồn gốc`} active={quality === "source"} onClick={() => { setQuality("source"); setMessage(`Đang dùng chất lượng ${qualityLabel} từ nguồn`); }} />
+          <SettingGroup title="Chất lượng" meta={isHls ? "HLS thích ứng" : "Theo nguồn phim"}>
+            <OptionButton label={`Tự động (${qualityLabel})`} active={quality === "auto"} onClick={() => changeQuality("auto")} />
+            {isHls ? qualityLevels.slice().sort((a,b)=>b.height-a.height).map((level)=><OptionButton key={level.index} label={`${level.height}p`} active={quality===String(level.index)} onClick={()=>changeQuality(String(level.index))}/>) : <OptionButton label={`${qualityLabel} · Nguồn gốc`} active disabled />}
           </SettingGroup>
 
-          <SettingGroup title="Phụ đề" meta="Theo nội dung được cấp phép">
-            <OptionButton label="Tắt" active />
-            <OptionButton label="Tiếng Việt · Chưa có" disabled />
-            <OptionButton label="English · Chưa có" disabled />
+          <SettingGroup title="Phụ đề" meta={subtitles.length ? `${subtitles.length} lựa chọn` : "Chưa có bản phụ đề"}>
+            <OptionButton label="Tắt" active={activeSubtitle === -1} onClick={() => changeSubtitle(-1)} />
+            {subtitles.map((subtitle,index)=><OptionButton key={`${subtitle.language}-${subtitle.src}`} label={subtitle.label} active={activeSubtitle===index} onClick={()=>changeSubtitle(index)}/>)}
+            {!subtitles.length ? <OptionButton label="Chưa có phụ đề" disabled /> : null}
           </SettingGroup>
 
           <SettingGroup title="Âm thanh" meta="Bản âm thanh hiện có">
@@ -350,4 +399,9 @@ function formatTime(value: number) {
   const minutes = Math.floor((value % 3600) / 60);
   const seconds = Math.floor(value % 60);
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}` : `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function setTextTrackMode(video: HTMLVideoElement | null, activeIndex: number) {
+  if (!video) return;
+  for (let index = 0; index < video.textTracks.length; index += 1) video.textTracks[index].mode = index === activeIndex ? "showing" : "disabled";
 }

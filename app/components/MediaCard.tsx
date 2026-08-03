@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { Movie } from "@/lib/catalog";
 import { QuickSaveButton } from "./QuickSaveButton";
+import { PosterArtwork } from "./PosterArtwork";
 
 export function MediaCard({
   movie,
@@ -24,11 +24,10 @@ export function MediaCard({
       <QuickSaveButton movieId={movie.id} initialSaved={initialSaved} compact />
       <Link href={href ?? detailHref} className="media-card-link" aria-label={`Xem thông tin ${movie.title}`}>
         <div className="poster-wrap" style={{ "--card-accent": movie.accent } as React.CSSProperties}>
-          <Image
+          <PosterArtwork
             src={movie.poster}
+            title={movie.title}
             alt=""
-            width="360"
-            height="540"
             priority={priority}
             sizes="(max-width: 760px) 42vw, 220px"
           />

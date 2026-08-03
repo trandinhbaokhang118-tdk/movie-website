@@ -2,12 +2,13 @@ import Link from "next/link";
 import { CinematicHero } from "./components/CinematicHero";
 import { Footer } from "./components/Footer";
 import { ImportedMovieRail } from "./components/ImportedMovieRail";
+import { ManagedTitleCard } from "./components/ManagedTitleCard";
 import { MediaRail } from "./components/MediaRail";
 import { SiteHeader } from "./components/SiteHeader";
 import { LandingPage } from "./components/LandingPage";
 import { TrendDiscovery } from "./components/TrendDiscovery";
 import { getViewerContext } from "./viewer-context";
-import { getTrendSnapshots, listProfileReactions, listViewingActivity, listWatchlist, type TrendPeriod, type TrendSnapshot } from "@/db/runtime";
+import { getTrendSnapshots, listManagedTitles, listProfileReactions, listUpcomingManagedTitles, listViewingActivity, listWatchlist, maturityRatingAllows, type TrendPeriod, type TrendSnapshot } from "@/db/runtime";
 import { featuredMovie, filterMoviesForMaturity, movies, viewingProgressPercent } from "@/lib/catalog";
 import { importedMoviesForHome } from "@/lib/tmdb/sync";
 
@@ -25,10 +26,18 @@ export default async function Home() {
   const visibleMovies = filterMoviesForMaturity(movies, context.profile.maturity);
   const newReleases = visibleMovies.filter((movie) => movie.newRelease);
   const movieById = Object.fromEntries(visibleMovies.map((movie) => [movie.id, movie]));
-  const [trendSnapshotsResult, importedMovies] = await Promise.all([
+  const [trendSnapshotsResult, importedMovies, managedTitles, upcomingTitles] = await Promise.all([
     getTrendSnapshots(),
     context.profile.isKids ? Promise.resolve([]) : importedMoviesForHome(),
+    listManagedTitles({ publishedOnly: true }),
+    listUpcomingManagedTitles(),
   ]);
+  const newManagedTitles = managedTitles
+    .filter((title) => maturityRatingAllows(title.maturity, context.profile.maturity))
+    .slice(0, 12);
+  const visibleUpcomingTitles = upcomingTitles
+    .filter((title) => maturityRatingAllows(title.maturity, context.profile.maturity))
+    .slice(0, 12);
   const { hour: hourTrend, day: dayTrend, week: weekTrend } = trendSnapshotsResult;
   const visibleIds = new Set(visibleMovies.map((movie) => movie.id));
   const hiddenTitles = new Set(movies.filter((movie) => !visibleIds.has(movie.id)).map((movie) => movie.title));
@@ -84,6 +93,18 @@ export default async function Home() {
           </section>
         )}
         <ImportedMovieRail movies={importedMovies} />
+        {newManagedTitles.length ? (
+          <section className="rail-section" aria-labelledby="managed-new-releases-heading">
+            <div className="section-heading editorial-heading"><div><p className="eyebrow">CINEWAVE VỪA XUẤT BẢN</p><h2 id="managed-new-releases-heading">Phim mới phát hành</h2></div><Link className="text-link" href="/browse">Xem tất cả <span>→</span></Link></div>
+            <div className="media-rail">{newManagedTitles.map((title) => <ManagedTitleCard key={title.id} title={title} />)}</div>
+          </section>
+        ) : null}
+        {visibleUpcomingTitles.length ? (
+          <section className="rail-section" aria-labelledby="upcoming-releases-heading">
+            <div className="section-heading editorial-heading"><div><p className="eyebrow">LỊCH CHIẾU SẮP TỚI</p><h2 id="upcoming-releases-heading">Phim &amp; series sắp ra mắt</h2></div></div>
+            <div className="media-rail">{visibleUpcomingTitles.map((title) => <ManagedTitleCard key={title.id} title={title} />)}</div>
+          </section>
+        ) : null}
         <TrendDiscovery snapshots={trendSnapshots} movieMap={movieById} savedMovieIds={context.savedIds} />
         <MediaRail title="Mới trên CineWave" eyebrow="NHỮNG CÂU CHUYỆN VỪA CẬP BẾN" movies={newReleases} savedMovieIds={context.savedIds} />
         <MediaRail title="Dự đoán hợp gu tối nay" eyebrow="GỢI Ý TỪ LỊCH SỬ XEM · TIM · TỦ PHIM" movies={forYou} savedMovieIds={context.savedIds} />

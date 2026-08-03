@@ -47,5 +47,6 @@ test("hồ sơ được tách biệt và giới hạn tối đa năm hồ sơ", 
 
 test("viewer không thể truy cập Control Room", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page.getByRole("heading", { name: "Đây không phải tài khoản quản trị" })).toBeVisible();
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(page.getByRole("heading", { name: /Chào, E2E Viewer/ })).toBeVisible();
 });

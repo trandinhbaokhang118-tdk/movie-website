@@ -20,6 +20,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const merchant = paymentMerchant();
+  if (!merchant) return Response.json({ error: "Payment merchant is not configured" }, { status: 503 });
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > 64 * 1024) return Response.json({ error: "Payload too large" }, { status: 413 });
   let payload: SePayWebhook;
   try {
     payload = await request.json() as SePayWebhook;
@@ -29,7 +33,6 @@ export async function POST(request: Request) {
   const transactionId = String(payload.id ?? "").trim();
   const amount = Number(payload.transferAmount);
   const transferContent = extractPaymentCode(payload.code, payload.content);
-  const merchant = paymentMerchant();
   if (!transactionId || payload.transferType !== "in" || !Number.isSafeInteger(amount) || amount <= 0 || !transferContent) {
     return Response.json({ error: "Invalid transaction" }, { status: 400 });
   }

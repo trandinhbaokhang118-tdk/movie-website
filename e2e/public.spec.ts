@@ -20,7 +20,7 @@ test("route riêng tư chuyển khách tới đăng nhập và từ chối mật
   await page.goto("/account");
   await expect(page).toHaveURL(/\/login\?return_to=%2Faccount/);
   await page.getByLabel("Email").fill("user.e2e@cinewave.local");
-  await page.getByLabel("Mật khẩu").fill("not-the-password");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("not-the-password");
   await injectTurnstileToken(page);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("Email hoặc mật khẩu không đúng");
@@ -29,7 +29,7 @@ test("route riêng tư chuyển khách tới đăng nhập và từ chối mật
 test("tài khoản user localhost vẫn đăng nhập được sau khi reset dữ liệu kiểm thử", async ({ page }) => {
   await page.goto("/login?return_to=%2Fbrowse");
   await page.getByLabel("Email").fill("user@cinewave.local");
-  await page.getByLabel("Mật khẩu").fill("CineWaveUser@2026");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("CineWaveUser@2026");
   await injectTurnstileToken(page);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(/\/browse$/);

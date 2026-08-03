@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { loginAction, registerAction } from "../actions/auth";
 import { Brand } from "./Brand";
 
@@ -13,6 +15,8 @@ type TurnstileApi = {
 declare global {
   interface Window { turnstile?: TurnstileApi; }
 }
+
+const subscribeToClient = () => () => undefined;
 
 export function AuthExperience({
   siteKey,
@@ -37,6 +41,7 @@ export function AuthExperience({
 }) {
   const [open, setOpen] = useState(initialOpen);
   const [mode, setMode] = useState<Mode>(initialMode);
+  const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   const titleId = useId();
 
   const close = useCallback(() => {
@@ -61,7 +66,7 @@ export function AuthExperience({
   return (
     <>
       {!standalone ? <button className="button button-small auth-open-button" type="button" onClick={() => setOpen(true)}>Đăng nhập</button> : null}
-      {open ? (
+      {mounted && open ? createPortal(
         <div className="auth-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
           <section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
             <button className="auth-modal-close" type="button" onClick={close} aria-label="Đóng cửa sổ xác thực">×</button>
@@ -83,7 +88,7 @@ export function AuthExperience({
                 <form action={loginAction} className="auth-form auth-form-premium">
                   <input type="hidden" name="returnTo" value={returnTo} />
                   <label>Email<input name="email" type="email" autoComplete="email" defaultValue={defaultEmail} placeholder="ban@example.com" required /></label>
-                  <label>Mật khẩu<input name="password" type="password" autoComplete="current-password" minLength={8} placeholder="Tối thiểu 8 ký tự" required /></label>
+                  <PasswordField autoComplete="current-password" />
                   {renderChallenge ? <TurnstileWidget siteKey={siteKey} action="login" /> : <TurnstileTestPlaceholder />}
                   <button className="button button-cinema auth-submit" type="submit" disabled={renderChallenge && !siteKey}><span aria-hidden="true">→</span> Đăng nhập</button>
                 </form>
@@ -92,7 +97,7 @@ export function AuthExperience({
                   <input type="hidden" name="returnTo" value={returnTo} />
                   <label>Tên hiển thị<input name="displayName" type="text" autoComplete="name" minLength={2} maxLength={60} placeholder="Tên bạn muốn hiển thị" required /></label>
                   <label>Email<input name="email" type="email" autoComplete="email" defaultValue={defaultEmail} placeholder="ban@example.com" required /></label>
-                  <label>Mật khẩu<input name="password" type="password" autoComplete="new-password" minLength={8} maxLength={128} placeholder="Tối thiểu 8 ký tự" required /></label>
+                  <PasswordField autoComplete="new-password" maxLength={128} />
                   {renderChallenge ? <TurnstileWidget siteKey={siteKey} action="register" /> : <TurnstileTestPlaceholder />}
                   <button className="button button-cinema auth-submit" type="submit" disabled={renderChallenge && !siteKey}><span aria-hidden="true">＋</span> Tạo tài khoản</button>
                 </form>
@@ -100,10 +105,41 @@ export function AuthExperience({
               {renderChallenge && !siteKey ? <p className="auth-config-warning" role="alert">Không thể tải xác thực Cloudflare.</p> : null}
             </div>
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );
+}
+
+function PasswordField({ autoComplete, maxLength }: { autoComplete: "current-password" | "new-password"; maxLength?: number }) {
+  const [visible, setVisible] = useState(false);
+  const inputId = useId();
+
+  return <div className="auth-field">
+    <label htmlFor={inputId}>Mật khẩu</label>
+    <span className="auth-password-field">
+      <input
+        id={inputId}
+        name="password"
+        type={visible ? "text" : "password"}
+        autoComplete={autoComplete}
+        minLength={10}
+        maxLength={maxLength}
+        placeholder="Tối thiểu 10 ký tự, gồm chữ và số"
+        required
+      />
+      <button
+        type="button"
+        className="auth-password-toggle"
+        aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+        aria-pressed={visible}
+        onClick={() => setVisible((current) => !current)}
+      >
+        {visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+      </button>
+    </span>
+  </div>;
 }
 
 function TurnstileTestPlaceholder() {
@@ -113,8 +149,8 @@ function TurnstileTestPlaceholder() {
 function MiniatureHome() {
   const ranked = [
     { title: "Sprite Fright", meta: "Hoạt hình 3D · 2021", image: "/media/artwork/sprite-fright-hero.jpg", rank: 1 },
-    { title: "Sintel", meta: "Phiêu lưu · 2010", image: "/media/artwork/sintel-backdrop.jpg", rank: 2 },
-    { title: "Tears of Steel", meta: "Khoa học viễn tưởng · 2012", image: "/media/artwork/tears-of-steel-backdrop.jpg", rank: 3 },
+    { title: "Sintel", meta: "Phiêu lưu · 2010", image: "/media/artwork/sintel-poster.jpg", rank: 2 },
+    { title: "Tears of Steel", meta: "Khoa học viễn tưởng · 2012", image: "/media/artwork/tears-of-steel-poster.jpg", rank: 3 },
   ];
   const [activeMovie, setActiveMovie] = useState(0);
 

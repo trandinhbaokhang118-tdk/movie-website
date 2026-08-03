@@ -8,6 +8,7 @@ import {
   findViewerBySession,
   findViewerCredentials,
   registerViewer,
+  updateViewerPassword,
   type Viewer,
 } from "@/db/runtime";
 
@@ -74,10 +75,19 @@ export async function startSession(userId: string) {
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
+    secure: shouldUseSecureCookies(requestHeaders),
     path: "/",
     expires,
   });
+}
+
+export async function changePasswordWithCurrent(userId: string, email: string, currentPassword: string, newPassword: string) {
+  const current = await authenticateWithPassword(email, currentPassword);
+  if (!current || current.id !== userId) throw new Error("CURRENT_PASSWORD_INVALID");
+  validatePassword(newPassword);
+  if (currentPassword === newPassword) throw new Error("PASSWORD_UNCHANGED");
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  await updateViewerPassword(userId, await derivePassword(newPassword, saltBytes), toHex(saltBytes));
 }
 
 export async function endSession() {
@@ -95,7 +105,20 @@ export async function currentSessionHash(): Promise<string | null> {
 function validateRegistration(email: string, displayName: string, password: string) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("INVALID_EMAIL");
   if (displayName.length < 2 || displayName.length > 60) throw new Error("INVALID_NAME");
-  if (password.length < 8 || password.length > 128) throw new Error("WEAK_PASSWORD");
+  validatePassword(password);
+}
+
+function validatePassword(password: string) {
+  if (password.length < 10 || password.length > 128 || !/[A-Za-zÀ-ỹ]/u.test(password) || !/\d/.test(password)) {
+    throw new Error("WEAK_PASSWORD");
+  }
+}
+
+function shouldUseSecureCookies(requestHeaders: Headers) {
+  const forwardedProto = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+  if (forwardedProto) return forwardedProto === "https";
+  const host = requestHeaders.get("host")?.split(":")[0]?.toLowerCase() ?? "";
+  return !["localhost", "127.0.0.1", "::1"].includes(host) && !host.endsWith(".local");
 }
 
 async function derivePassword(password: string, salt: Uint8Array): Promise<string> {

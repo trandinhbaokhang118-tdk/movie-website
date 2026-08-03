@@ -15,7 +15,7 @@ export async function blockImages(context: BrowserContext) {
 export async function login(page: Page, account: keyof typeof accounts, returnTo = "/") {
   await page.goto(`/login?return_to=${encodeURIComponent(returnTo)}`);
   await page.getByLabel("Email").fill(accounts[account].email);
-  await page.getByLabel("Mật khẩu").fill(accounts[account].password);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill(accounts[account].password);
   await injectTurnstileToken(page);
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${returnTo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));

@@ -11,20 +11,20 @@ test("VietQR invoice is settled exactly once by an authenticated SePay webhook",
   const transferContent = (await page.locator(".payment-transfer-code strong").textContent())?.trim();
   expect(transferContent).toMatch(/^CW[A-Z0-9]{10}$/);
   const qrSource = await page.locator(".payment-qr-image img").getAttribute("src");
-  expect(qrSource).toContain("https://img.vietqr.io/image/ACB-36345057-compact2.png");
+  expect(qrSource).toContain("https://img.vietqr.io/image/VCB-0000000000-compact2.png");
   expect(qrSource).toContain("amount=79000");
   expect(qrSource).toContain(`addInfo=${transferContent}`);
 
   const webhook = {
     id: 202607210001,
-    gateway: "ACB",
+    gateway: "VCB",
     transactionDate: "2026-07-21 12:00:00",
-    accountNumber: "36345057",
+    accountNumber: "0000000000",
     code: transferContent,
     content: `Thanh toan ${transferContent}`,
     transferType: "in",
     transferAmount: 79000,
-    referenceCode: "ACB-E2E-202607210001",
+    referenceCode: "VCB-E2E-202607210001",
   };
   const headers = { authorization: "Apikey sepay-e2e-secret" };
   const firstResponse = await page.request.post("/api/webhooks/sepay", { headers, data: webhook });

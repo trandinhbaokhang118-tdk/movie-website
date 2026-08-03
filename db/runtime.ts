@@ -3,7 +3,7 @@ import type { ImportedMovie } from "@/lib/tmdb/types";
 import { findMovie, maturityAllows, movies, normalizeSearchText } from "@/lib/catalog";
 
 let initialization: Promise<void> | null = null;
-const RUNTIME_SCHEMA_VERSION = "7";
+const RUNTIME_SCHEMA_VERSION = "11";
 
 function database() {
   if (!env.DB) throw new Error("CineWave database binding is unavailable.");
@@ -36,7 +36,7 @@ const localDemoAccounts = [
     displayName: "CineWave Admin",
     role: "admin",
     passwordSalt: "63deb0252fbc9483ce78e0dcf8f235be",
-    passwordHash: "2374ab5c3ccd1250d08103a191a135dce7976c638847af3cc8f1fed4745be2fe",
+    passwordHash: "735a597fb2145261f4ebc8549f8ae1852fd149bacf292ee2e12e9d5f5d95f423",
   },
 ] as const;
 
@@ -127,10 +127,18 @@ export function ensureDatabase() {
         id TEXT PRIMARY KEY, title TEXT NOT NULL, original_title TEXT NOT NULL,
         release_year INTEGER NOT NULL, content_type TEXT NOT NULL DEFAULT 'movie',
         genres TEXT NOT NULL, maturity TEXT NOT NULL DEFAULT 'T13', duration TEXT NOT NULL,
-        synopsis TEXT NOT NULL, poster_url TEXT, video_url TEXT,
+        synopsis TEXT NOT NULL, poster_url TEXT, video_url TEXT, subtitle_url TEXT,
         license_name TEXT NOT NULL, license_url TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'draft', created_by TEXT NOT NULL,
-        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, published_at TEXT
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, published_at TEXT, scheduled_at TEXT
+      )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS editorial_contents (
+        id TEXT PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+        excerpt TEXT NOT NULL, body TEXT NOT NULL, category TEXT NOT NULL,
+        cover_url TEXT, media_url TEXT, scheduled_at TEXT,
+        status TEXT NOT NULL DEFAULT 'draft', view_count INTEGER NOT NULL DEFAULT 0,
+        engagement_count INTEGER NOT NULL DEFAULT 0, completion_rate INTEGER NOT NULL DEFAULT 0,
+        created_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, published_at TEXT
       )`),
       db.prepare(`CREATE TABLE IF NOT EXISTS imported_movies (
         id TEXT PRIMARY KEY,
@@ -201,6 +209,15 @@ export function ensureDatabase() {
         expires_at TEXT NOT NULL, created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL
         , user_agent TEXT, ip_address TEXT
       )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS rate_limits (
+        key TEXT PRIMARY KEY, scope TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0,
+        window_started_at TEXT NOT NULL, expires_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS media_assets (
+        id TEXT PRIMARY KEY, storage_key TEXT NOT NULL UNIQUE, kind TEXT NOT NULL,
+        content_type TEXT NOT NULL, size_bytes INTEGER NOT NULL, original_name TEXT NOT NULL,
+        uploaded_by TEXT NOT NULL, created_at TEXT NOT NULL
+      )`),
       db.prepare("CREATE INDEX IF NOT EXISTS profiles_user_idx ON profiles(user_id)"),
       db.prepare("CREATE INDEX IF NOT EXISTS watchlist_user_created_idx ON watchlist(user_id, created_at DESC)"),
       db.prepare("CREATE INDEX IF NOT EXISTS watchlist_profile_created_idx ON watchlist(user_id, profile_id, created_at DESC)"),
@@ -219,6 +236,9 @@ export function ensureDatabase() {
       db.prepare("CREATE INDEX IF NOT EXISTS analytics_created_idx ON analytics_events(event_name, created_at DESC)"),
       db.prepare("CREATE INDEX IF NOT EXISTS auth_sessions_user_idx ON auth_sessions(user_id, expires_at DESC)"),
       db.prepare("CREATE INDEX IF NOT EXISTS managed_titles_status_idx ON managed_titles(status, updated_at DESC)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS editorial_contents_kind_status_idx ON editorial_contents(kind, status, updated_at DESC)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS rate_limits_expires_idx ON rate_limits(expires_at)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS media_assets_created_idx ON media_assets(created_at DESC)"),
     ]);
       const ensureColumn = async (table: string, column: string, definition: string) => {
         const columns = await db.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
@@ -245,6 +265,8 @@ export function ensureDatabase() {
       await ensureColumn("auth_sessions", "ip_address", "TEXT");
       await ensureColumn("watchlist", "profile_id", "TEXT");
       await ensureColumn("watch_progress", "profile_id", "TEXT");
+      await ensureColumn("managed_titles", "scheduled_at", "TEXT");
+      await ensureColumn("managed_titles", "subtitle_url", "TEXT");
       await ensureLocalDemoAccounts();
       const now = new Date().toISOString();
       await db.prepare(
@@ -413,6 +435,70 @@ export async function countActiveAuthSessions(userId: string) {
     "SELECT COUNT(*) AS count FROM auth_sessions WHERE user_id = ? AND expires_at > ?",
   ).bind(userId, new Date().toISOString()).first<{ count: number }>();
   return row?.count ?? 0;
+}
+
+export async function consumeRateLimit(scope: string, identity: string, limit: number, windowSeconds: number) {
+  if (!/^[a-z0-9._-]{2,60}$/i.test(scope) || limit < 1 || windowSeconds < 1) throw new Error("INVALID_RATE_LIMIT");
+  await ensureDatabase();
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity.trim().toLowerCase() || "anonymous"));
+  const fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 32);
+  const key = `${scope}:${fingerprint}`;
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const expiresAt = new Date(now.getTime() + windowSeconds * 1_000).toISOString();
+  const db = database();
+  await db.prepare(`INSERT INTO rate_limits (key, scope, count, window_started_at, expires_at, updated_at)
+    VALUES (?, ?, 1, ?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET
+      count = CASE WHEN rate_limits.expires_at <= excluded.updated_at THEN 1 ELSE rate_limits.count + 1 END,
+      window_started_at = CASE WHEN rate_limits.expires_at <= excluded.updated_at THEN excluded.window_started_at ELSE rate_limits.window_started_at END,
+      expires_at = CASE WHEN rate_limits.expires_at <= excluded.updated_at THEN excluded.expires_at ELSE rate_limits.expires_at END,
+      updated_at = excluded.updated_at`)
+    .bind(key, scope, nowIso, expiresAt, nowIso).run();
+  const row = await db.prepare("SELECT count, expires_at AS expiresAt FROM rate_limits WHERE key = ? LIMIT 1")
+    .bind(key).first<{ count: number; expiresAt: string }>();
+  if (Math.random() < 0.02) await db.prepare("DELETE FROM rate_limits WHERE expires_at < ?").bind(nowIso).run();
+  const retryAfterSeconds = Math.max(1, Math.ceil((Date.parse(row?.expiresAt ?? expiresAt) - Date.now()) / 1_000));
+  return { allowed: (row?.count ?? 1) <= limit, remaining: Math.max(0, limit - (row?.count ?? 1)), retryAfterSeconds };
+}
+
+export async function updateViewerPassword(userId: string, passwordHash: string, passwordSalt: string) {
+  await ensureDatabase();
+  await database().prepare("UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ? AND status = 'active'")
+    .bind(passwordHash, passwordSalt, new Date().toISOString(), userId).run();
+}
+
+export async function getUserDataExport(userId: string) {
+  await ensureDatabase();
+  const db = database();
+  const [account, profiles, watchlist, progress, reactions, subscriptions, invoices, sessions] = await Promise.all([
+    db.prepare("SELECT id, email, display_name AS displayName, analytics_consent AS analyticsConsent, created_at AS createdAt, updated_at AS updatedAt FROM users WHERE id = ? LIMIT 1").bind(userId).first(),
+    db.prepare("SELECT id, name, maturity, is_kids AS isKids, locale, subtitle_language AS subtitleLanguage, autoplay_next AS autoplayNext, autoplay_previews AS autoplayPreviews, created_at AS createdAt FROM profiles WHERE user_id = ? ORDER BY created_at").bind(userId).all(),
+    db.prepare("SELECT profile_id AS profileId, movie_id AS movieId, created_at AS createdAt FROM watchlist WHERE user_id = ? ORDER BY created_at DESC").bind(userId).all(),
+    db.prepare("SELECT profile_id AS profileId, movie_id AS movieId, position_seconds AS positionSeconds, updated_at AS updatedAt FROM watch_progress WHERE user_id = ? ORDER BY updated_at DESC").bind(userId).all(),
+    db.prepare("SELECT profile_id AS profileId, movie_id AS movieId, reaction, updated_at AS updatedAt FROM title_reactions WHERE profile_id IN (SELECT id FROM profiles WHERE user_id = ?) ORDER BY updated_at DESC").bind(userId).all(),
+    db.prepare("SELECT plan_code AS planCode, status, current_period_end AS currentPeriodEnd, provider, updated_at AS updatedAt FROM subscriptions WHERE user_id = ? ORDER BY updated_at DESC").bind(userId).all(),
+    db.prepare("SELECT id, plan_code AS planCode, amount_vnd AS amountVnd, status, provider, created_at AS createdAt, expires_at AS expiresAt, paid_at AS paidAt FROM payment_invoices WHERE user_id = ? ORDER BY created_at DESC").bind(userId).all(),
+    db.prepare("SELECT id, created_at AS createdAt, last_seen_at AS lastSeenAt, expires_at AS expiresAt, user_agent AS userAgent, ip_address AS ipAddress FROM auth_sessions WHERE user_id = ? ORDER BY created_at DESC").bind(userId).all(),
+  ]);
+  return { exportedAt: new Date().toISOString(), account, profiles: profiles.results, watchlist: watchlist.results, viewingProgress: progress.results, reactions: reactions.results, subscriptions: subscriptions.results, invoices: invoices.results, sessions: sessions.results };
+}
+
+export async function anonymizeViewerAccount(userId: string) {
+  await ensureDatabase();
+  const db = database();
+  const now = new Date().toISOString();
+  const anonymousEmail = `deleted-${userId}@cinewave.invalid`;
+  await db.batch([
+    db.prepare("DELETE FROM analytics_events WHERE profile_id IN (SELECT id FROM profiles WHERE user_id = ?)").bind(userId),
+    db.prepare("DELETE FROM title_reactions WHERE profile_id IN (SELECT id FROM profiles WHERE user_id = ?)").bind(userId),
+    db.prepare("DELETE FROM watch_progress WHERE user_id = ?").bind(userId),
+    db.prepare("DELETE FROM watchlist WHERE user_id = ?").bind(userId),
+    db.prepare("DELETE FROM playback_sessions WHERE user_id = ?").bind(userId),
+    db.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(userId),
+    db.prepare("DELETE FROM profiles WHERE user_id = ?").bind(userId),
+    db.prepare("UPDATE users SET email = ?, display_name = 'Tài khoản đã xóa', password_hash = NULL, password_salt = NULL, active_profile_id = NULL, analytics_consent = 0, role = 'viewer', status = 'deleted', updated_at = ? WHERE id = ?").bind(anonymousEmail, now, userId),
+  ]);
 }
 
 export async function getActiveProfile(userId: string): Promise<ViewerProfile> {
@@ -804,12 +890,37 @@ export async function settlePaymentInvoice(input: {
   return { outcome: "paid" as const, invoiceId: invoice.id };
 }
 
-export async function isAdmin(userId: string, email: string) {
-  await ensureDatabase();
-  const row = await database().prepare("SELECT role FROM users WHERE id = ?").bind(userId).first<{ role: string }>();
-  const configured = ((env as unknown as { ADMIN_EMAILS?: string }).ADMIN_EMAILS ?? "")
+export type AdminRole = "super_admin" | "content_manager" | "support" | "analyst";
+export type AdminCapability = "overview" | "analytics" | "content" | "accounts" | "permissions" | "system" | "audit";
+
+const roleCapabilities: Record<AdminRole, readonly AdminCapability[]> = {
+  super_admin: ["overview", "analytics", "content", "accounts", "permissions", "system", "audit"],
+  content_manager: ["overview", "analytics", "content"],
+  support: ["overview", "accounts", "audit"],
+  analyst: ["overview", "analytics"],
+};
+
+function configuredAdminEmails() {
+  return ((env as unknown as { ADMIN_EMAILS?: string }).ADMIN_EMAILS ?? "")
     .split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
-  return row?.role === "admin" || configured.includes(email.toLowerCase());
+}
+
+export async function getAdminRole(userId: string, email: string): Promise<AdminRole | null> {
+  await ensureDatabase();
+  if (configuredAdminEmails().includes(email.toLowerCase())) return "super_admin";
+  const row = await database().prepare("SELECT role FROM users WHERE id = ? AND status = 'active'")
+    .bind(userId).first<{ role: string }>();
+  if (row?.role === "admin" || row?.role === "super_admin") return "super_admin";
+  if (row?.role === "content_manager" || row?.role === "support" || row?.role === "analyst") return row.role;
+  return null;
+}
+
+export function adminRoleCan(role: AdminRole, capability: AdminCapability) {
+  return roleCapabilities[role].includes(capability);
+}
+
+export async function isAdmin(userId: string, email: string) {
+  return (await getAdminRole(userId, email)) !== null;
 }
 
 export type PlaybackGrant = { sessionId: string; profile: ViewerProfile; expiresAt: string };
@@ -819,6 +930,7 @@ export async function authorizePlayback(userId: string, movieId: string): Promis
   const movie = findMovie(movieId);
   const managed = movie ? null : await findManagedTitle(movieId);
   if (!movie && !managed) throw new Error("TITLE_NOT_FOUND");
+  if (managed && managed.status !== "published") throw new Error("TITLE_NOT_RELEASED");
   if (movie && (!movie.source || !movie.video)) throw new Error("RIGHTS_NOT_AVAILABLE");
   if (managed && !managed.videoUrl) throw new Error("RIGHTS_NOT_AVAILABLE");
   const profile = await getActiveProfile(userId);
@@ -860,7 +972,12 @@ export async function authorizePlayback(userId: string, movieId: string): Promis
 }
 
 function maturityRank(value: string) {
-  return ({ P: 0, K: 7, T13: 13, T16: 16, T18: 18 } as Record<string, number>)[value] ?? 18;
+  const normalized = value.trim().toUpperCase().replaceAll("+", "");
+  return ({ P: 0, K: 7, T13: 13, T16: 16, T18: 18, 13: 13, 16: 16, 18: 18 } as Record<string, number>)[normalized] ?? 18;
+}
+
+export function maturityRatingAllows(titleMaturity: string, profileMaturity = "T18") {
+  return maturityRank(titleMaturity) <= maturityRank(profileMaturity);
 }
 
 export async function closePlaybackSession(userId: string, sessionId: string) {
@@ -1196,23 +1313,34 @@ export type ManagedTitle = {
   synopsis: string;
   posterUrl: string | null;
   videoUrl: string | null;
+  subtitleUrl: string | null;
   licenseName: string;
   licenseUrl: string;
-  status: "draft" | "published" | "hidden";
+  status: "draft" | "scheduled" | "published" | "hidden";
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
+  scheduledAt: string | null;
 };
 
 const managedTitleSelect = `SELECT id, title, original_title AS originalTitle,
   release_year AS releaseYear, content_type AS contentType, genres, maturity, duration,
-  synopsis, poster_url AS posterUrl, video_url AS videoUrl, license_name AS licenseName,
+  synopsis, poster_url AS posterUrl, video_url AS videoUrl, subtitle_url AS subtitleUrl, license_name AS licenseName,
   license_url AS licenseUrl, status, created_by AS createdBy, created_at AS createdAt,
-  updated_at AS updatedAt, published_at AS publishedAt FROM managed_titles`;
+  updated_at AS updatedAt, published_at AS publishedAt, scheduled_at AS scheduledAt FROM managed_titles`;
+
+async function publishDueManagedTitles() {
+  const now = new Date().toISOString();
+  await database().prepare(`UPDATE managed_titles SET status = 'published', published_at = scheduled_at,
+    updated_at = ? WHERE status = 'scheduled' AND scheduled_at <= ? AND video_url IS NOT NULL
+    AND TRIM(video_url) <> '' AND TRIM(license_name) <> '' AND TRIM(license_url) <> ''`)
+    .bind(now, now).run();
+}
 
 export async function listManagedTitles(options: { publishedOnly?: boolean; query?: string } = {}) {
   await ensureDatabase();
+  await publishDueManagedTitles();
   const clauses: string[] = [];
   const values: string[] = [];
   if (options.publishedOnly) clauses.push("status = 'published'");
@@ -1222,19 +1350,28 @@ export async function listManagedTitles(options: { publishedOnly?: boolean; quer
     values.push(like, like, like);
   }
   const where = clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "";
-  const result = await database().prepare(`${managedTitleSelect}${where} ORDER BY updated_at DESC`)
+  const result = await database().prepare(`${managedTitleSelect}${where} ORDER BY COALESCE(published_at, updated_at) DESC`)
     .bind(...values).all<ManagedTitle>();
+  return result.results;
+}
+
+export async function listUpcomingManagedTitles() {
+  await ensureDatabase();
+  await publishDueManagedTitles();
+  const result = await database().prepare(`${managedTitleSelect} WHERE status = 'scheduled' AND scheduled_at > ? ORDER BY scheduled_at ASC`)
+    .bind(new Date().toISOString()).all<ManagedTitle>();
   return result.results;
 }
 
 export async function findManagedTitle(id: string, includeUnpublished = false) {
   await ensureDatabase();
-  const suffix = includeUnpublished ? "" : " AND status = 'published'";
+  await publishDueManagedTitles();
+  const suffix = includeUnpublished ? "" : " AND status IN ('published', 'scheduled')";
   return database().prepare(`${managedTitleSelect} WHERE id = ?${suffix} LIMIT 1`)
     .bind(id).first<ManagedTitle>();
 }
 
-export type ManagedTitleInput = Omit<ManagedTitle, "id" | "status" | "createdBy" | "createdAt" | "updatedAt" | "publishedAt">;
+export type ManagedTitleInput = Omit<ManagedTitle, "id" | "status" | "createdBy" | "createdAt" | "updatedAt" | "publishedAt" | "scheduledAt">;
 
 export async function createManagedTitle(input: ManagedTitleInput, actorEmail: string) {
   await ensureDatabase();
@@ -1242,11 +1379,11 @@ export async function createManagedTitle(input: ManagedTitleInput, actorEmail: s
   const now = new Date().toISOString();
   await database().prepare(
     `INSERT INTO managed_titles (id, title, original_title, release_year, content_type, genres,
-      maturity, duration, synopsis, poster_url, video_url, license_name, license_url, status,
+      maturity, duration, synopsis, poster_url, video_url, subtitle_url, license_name, license_url, status,
       created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)`,
   ).bind(id, input.title, input.originalTitle, input.releaseYear, input.contentType, input.genres,
-    input.maturity, input.duration, input.synopsis, input.posterUrl, input.videoUrl,
+    input.maturity, input.duration, input.synopsis, input.posterUrl, input.videoUrl, input.subtitleUrl,
     input.licenseName, input.licenseUrl, actorEmail, now, now).run();
   await recordAudit(actorEmail, "content.created", id);
   return id;
@@ -1256,26 +1393,27 @@ export async function updateManagedTitle(id: string, input: ManagedTitleInput, a
   await ensureDatabase();
   const result = await database().prepare(
     `UPDATE managed_titles SET title = ?, original_title = ?, release_year = ?, content_type = ?,
-      genres = ?, maturity = ?, duration = ?, synopsis = ?, poster_url = ?, video_url = ?,
+      genres = ?, maturity = ?, duration = ?, synopsis = ?, poster_url = ?, video_url = ?, subtitle_url = ?,
       license_name = ?, license_url = ?, updated_at = ? WHERE id = ?`,
   ).bind(input.title, input.originalTitle, input.releaseYear, input.contentType, input.genres,
-    input.maturity, input.duration, input.synopsis, input.posterUrl, input.videoUrl,
+    input.maturity, input.duration, input.synopsis, input.posterUrl, input.videoUrl, input.subtitleUrl,
     input.licenseName, input.licenseUrl, new Date().toISOString(), id).run();
   if (!result.meta.changes) throw new Error("TITLE_NOT_FOUND");
   await recordAudit(actorEmail, "content.updated", id);
 }
 
-export async function setManagedTitleStatus(id: string, status: "draft" | "published" | "hidden", actorEmail: string) {
+export async function setManagedTitleStatus(id: string, status: "draft" | "scheduled" | "published" | "hidden", actorEmail: string, scheduledAt: string | null = null) {
   await ensureDatabase();
   const now = new Date().toISOString();
   const title = await findManagedTitle(id, true);
   if (!title) throw new Error("TITLE_NOT_FOUND");
-  if (status === "published" && (!title.videoUrl || !title.licenseName || !title.licenseUrl)) {
+  if ((status === "published" || status === "scheduled") && (!title.videoUrl || !title.licenseName || !title.licenseUrl)) {
     throw new Error("PUBLISH_REQUIRES_MEDIA_AND_LICENSE");
   }
+  if (status === "scheduled" && (!scheduledAt || Date.parse(scheduledAt) <= Date.now())) throw new Error("INVALID_SCHEDULE");
   await database().prepare(
-    "UPDATE managed_titles SET status = ?, updated_at = ?, published_at = CASE WHEN ? = 'published' THEN ? ELSE published_at END WHERE id = ?",
-  ).bind(status, now, status, now, id).run();
+    "UPDATE managed_titles SET status = ?, updated_at = ?, scheduled_at = CASE WHEN ? = 'scheduled' THEN ? ELSE scheduled_at END, published_at = CASE WHEN ? = 'published' THEN ? ELSE published_at END WHERE id = ?",
+  ).bind(status, now, status, scheduledAt, status, now, id).run();
   await recordAudit(actorEmail, `content.${status}`, id);
 }
 
@@ -1285,6 +1423,81 @@ export async function deleteManagedTitle(id: string, actorEmail: string) {
   if (!title || title.status === "published") throw new Error("TITLE_MUST_BE_UNPUBLISHED");
   await database().prepare("DELETE FROM managed_titles WHERE id = ?").bind(id).run();
   await recordAudit(actorEmail, "content.deleted", `${id}:${title.title}`);
+}
+
+export type EditorialKind = "blog" | "program" | "podcast";
+export type EditorialContent = {
+  id: string; kind: EditorialKind; title: string; slug: string; excerpt: string; body: string;
+  category: string; coverUrl: string | null; mediaUrl: string | null; scheduledAt: string | null;
+  status: "draft" | "scheduled" | "published" | "hidden"; viewCount: number;
+  engagementCount: number; completionRate: number; createdBy: string; createdAt: string;
+  updatedAt: string; publishedAt: string | null;
+};
+
+const editorialSelect = `SELECT id, kind, title, slug, excerpt, body, category,
+  cover_url AS coverUrl, media_url AS mediaUrl, scheduled_at AS scheduledAt, status,
+  view_count AS viewCount, engagement_count AS engagementCount,
+  completion_rate AS completionRate, created_by AS createdBy, created_at AS createdAt,
+  updated_at AS updatedAt, published_at AS publishedAt FROM editorial_contents`;
+
+export async function listEditorialContents(kind?: EditorialKind) {
+  await ensureDatabase();
+  const result = kind
+    ? await database().prepare(`${editorialSelect} WHERE kind = ? ORDER BY updated_at DESC`).bind(kind).all<EditorialContent>()
+    : await database().prepare(`${editorialSelect} ORDER BY updated_at DESC`).all<EditorialContent>();
+  return result.results;
+}
+
+export type EditorialInput = Pick<EditorialContent,
+  "kind" | "title" | "slug" | "excerpt" | "body" | "category" | "coverUrl" | "mediaUrl" | "scheduledAt">;
+
+export async function createEditorialContent(input: EditorialInput, actorEmail: string) {
+  await ensureDatabase();
+  const id = `${input.kind}-${crypto.randomUUID()}`;
+  const now = new Date().toISOString();
+  const status = input.scheduledAt && Date.parse(input.scheduledAt) > Date.now() ? "scheduled" : "draft";
+  await database().prepare(`INSERT INTO editorial_contents
+    (id, kind, title, slug, excerpt, body, category, cover_url, media_url, scheduled_at,
+     status, created_by, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, input.kind, input.title, input.slug, input.excerpt, input.body, input.category,
+      input.coverUrl, input.mediaUrl, input.scheduledAt, status, actorEmail, now, now).run();
+  await recordAudit(actorEmail, `${input.kind}.created`, `${id}:${input.title}`);
+  return id;
+}
+
+export async function setEditorialStatus(
+  id: string,
+  status: "draft" | "scheduled" | "published" | "hidden",
+  actorEmail: string,
+) {
+  await ensureDatabase();
+  const item = await database().prepare("SELECT kind, title FROM editorial_contents WHERE id = ? LIMIT 1")
+    .bind(id).first<{ kind: EditorialKind; title: string }>();
+  if (!item) throw new Error("EDITORIAL_NOT_FOUND");
+  const now = new Date().toISOString();
+  await database().prepare(`UPDATE editorial_contents SET status = ?, updated_at = ?,
+    published_at = CASE WHEN ? = 'published' THEN ? ELSE published_at END WHERE id = ?`)
+    .bind(status, now, status, now, id).run();
+  await recordAudit(actorEmail, `${item.kind}.${status}`, `${id}:${item.title}`);
+}
+
+export async function getAdminContentPerformance() {
+  await ensureDatabase();
+  const db = database();
+  const [movies, editorials] = await Promise.all([
+    db.prepare(`SELECT t.id, t.title, t.status, COUNT(s.id) AS views
+      FROM managed_titles t LEFT JOIN playback_sessions s ON s.movie_id = t.id
+      GROUP BY t.id ORDER BY views DESC, t.updated_at DESC LIMIT 5`)
+      .all<{ id: string; title: string; status: string; views: number }>(),
+    db.prepare(`SELECT kind, COUNT(*) AS total,
+      SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published,
+      SUM(view_count) AS views, SUM(engagement_count) AS engagements,
+      COALESCE(AVG(completion_rate), 0) AS completion
+      FROM editorial_contents GROUP BY kind`)
+      .all<{ kind: EditorialKind; total: number; published: number; views: number; engagements: number; completion: number }>(),
+  ]);
+  return { movies: movies.results, editorials: editorials.results };
 }
 
 export type AdminAccount = {
@@ -1301,6 +1514,26 @@ export async function listAdminAccounts() {
      GROUP BY u.id ORDER BY u.created_at DESC LIMIT 100`,
   ).all<AdminAccount>();
   return result.results;
+}
+
+export async function setAccountRole(userId: string, role: "viewer" | AdminRole, actorEmail: string) {
+  await ensureDatabase();
+  const db = database();
+  const target = await db.prepare("SELECT email, role, status FROM users WHERE id = ? LIMIT 1")
+    .bind(userId).first<{ email: string; role: string; status: string }>();
+  if (!target) throw new Error("USER_NOT_FOUND");
+  if (target.email.toLowerCase() === actorEmail.toLowerCase()) throw new Error("CANNOT_CHANGE_OWN_ROLE");
+  if (configuredAdminEmails().includes(target.email.toLowerCase())) throw new Error("CONFIGURED_ADMIN_ROLE_LOCKED");
+  const normalizedCurrent = target.role === "admin" ? "super_admin" : target.role;
+  if (normalizedCurrent === "super_admin" && role !== "super_admin") {
+    const remaining = await db.prepare("SELECT COUNT(*) AS count FROM users WHERE status = 'active' AND id != ? AND role IN ('admin', 'super_admin')")
+      .bind(userId).first<{ count: number }>();
+    if ((remaining?.count ?? 0) === 0 && configuredAdminEmails().length === 0) throw new Error("LAST_SUPER_ADMIN");
+  }
+  await db.prepare("UPDATE users SET role = ?, updated_at = ? WHERE id = ?")
+    .bind(role, new Date().toISOString(), userId).run();
+  if (role === "viewer") await db.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(userId).run();
+  await recordAudit(actorEmail, "account.role_changed", `${userId}:${target.email}:${normalizedCurrent}->${role}`);
 }
 
 export async function setAccountStatus(userId: string, status: "active" | "locked", actorEmail: string) {
@@ -1326,6 +1559,54 @@ export async function listAuditEvents(limit = 100) {
   return result.results;
 }
 
+export async function getPlatformSnapshot() {
+  await ensureDatabase();
+  const db = database();
+  const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const started = performance.now();
+  const [users, views, managed, imported, activeSessions, failedSyncs, latestAudit] = await Promise.all([
+    db.prepare("SELECT COUNT(*) AS count FROM users WHERE status != 'deleted'").first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM playback_sessions WHERE created_at >= ?").bind(monthAgo).first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM managed_titles").first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM imported_movies").first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE expires_at > ?").bind(new Date().toISOString()).first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM catalog_sync_runs WHERE status = 'failed' AND created_at >= ?").bind(monthAgo).first<{ count: number }>(),
+    db.prepare("SELECT created_at AS createdAt, action FROM audit_events ORDER BY created_at DESC LIMIT 1").first<{ createdAt: string; action: string }>(),
+  ]);
+  return {
+    users: users?.count ?? 0,
+    viewsLast30Days: views?.count ?? 0,
+    totalContent: (managed?.count ?? 0) + (imported?.count ?? 0),
+    activeSessions: activeSessions?.count ?? 0,
+    failedSyncsLast30Days: failedSyncs?.count ?? 0,
+    databaseLatencyMs: Math.max(1, Math.round(performance.now() - started)),
+    latestAudit: latestAudit ?? null,
+    measuredAt: new Date().toISOString(),
+  };
+}
+
+export async function getSecuritySnapshot() {
+  await ensureDatabase();
+  const db = database();
+  const now = new Date().toISOString();
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const [locked, sessions, throttled, recentAudits] = await Promise.all([
+    db.prepare("SELECT COUNT(*) AS count FROM users WHERE status = 'locked'").first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM auth_sessions WHERE expires_at > ?").bind(now).first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM rate_limits WHERE count > 1 AND updated_at >= ?").bind(hourAgo).first<{ count: number }>(),
+    db.prepare("SELECT COUNT(*) AS count FROM audit_events WHERE created_at >= ?").bind(hourAgo).first<{ count: number }>(),
+  ]);
+  return { lockedAccounts: locked?.count ?? 0, activeSessions: sessions?.count ?? 0, activeRateLimits: throttled?.count ?? 0, auditEventsLastHour: recentAudits?.count ?? 0, measuredAt: now };
+}
+
+export async function recordMediaAsset(input: { storageKey: string; kind: "poster" | "video" | "subtitle" | "editorial"; contentType: string; sizeBytes: number; originalName: string; uploadedBy: string }) {
+  await ensureDatabase();
+  await database().prepare(`INSERT INTO media_assets
+    (id, storage_key, kind, content_type, size_bytes, original_name, uploaded_by, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(crypto.randomUUID(), input.storageKey, input.kind, input.contentType, input.sizeBytes, input.originalName.slice(0, 240), input.uploadedBy, new Date().toISOString()).run();
+}
+
 function requireE2EMode() {
   if ((env as unknown as { CINEWAVE_E2E?: string }).CINEWAVE_E2E !== "1") throw new Error("E2E_DISABLED");
 }
@@ -1335,8 +1616,8 @@ export async function resetE2EState() {
   await ensureDatabase();
   const tables = [
     "auth_sessions", "playback_sessions", "title_reactions", "watch_progress", "watchlist", "payment_events", "payment_invoices",
-    "analytics_events", "content_rights", "catalog_sync_runs", "imported_movies", "audit_events",
-    "managed_titles", "subscriptions", "profiles", "users",
+    "analytics_events", "content_rights", "catalog_sync_runs", "imported_movies", "audit_events", "rate_limits", "media_assets",
+    "editorial_contents", "managed_titles", "subscriptions", "profiles", "users",
   ];
   await database().batch(tables.map((table) => database().prepare(`DELETE FROM ${table}`)));
   // The E2E database can share Miniflare persistence with localhost on Windows.

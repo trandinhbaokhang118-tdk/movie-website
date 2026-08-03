@@ -7,7 +7,7 @@ import { ImportedCatalog } from "../components/ImportedCatalog";
 import { MediaCard } from "../components/MediaCard";
 import { ManagedTitleCard } from "../components/ManagedTitleCard";
 import { SiteHeader } from "../components/SiteHeader";
-import { listImportedMovies, listManagedTitles, listWatchlist } from "@/db/runtime";
+import { listImportedMovies, listManagedTitles, listWatchlist, maturityRatingAllows } from "@/db/runtime";
 import { filterMoviesForMaturity, movies } from "@/lib/catalog";
 import { getViewerContext } from "../viewer-context";
 
@@ -46,6 +46,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
     context ? listWatchlist(context.viewer.id, context.profile.id) : Promise.resolve([]),
   ]);
   const visibleManaged = managed.filter((title) =>
+    maturityRatingAllows(title.maturity, context?.profile.maturity ?? "T18") &&
     (selected === allGenres || title.genres.split(",").map((item) => item.trim()).includes(selected)) &&
     (type !== "series" || title.contentType === "series"),
   );

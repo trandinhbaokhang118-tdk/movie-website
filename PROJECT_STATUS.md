@@ -1,58 +1,54 @@
-# Báo cáo tiến độ thực tế CineWave
+# Trạng thái release CineWave
 
-Cập nhật: 20/07/2026
+Cập nhật: 03/08/2026
 
 ## Kết luận
 
-- Phạm vi MVP đồ án: **khoảng 72%**.
-- Bộ tiêu chí “hoàn thành phiên bản đầu” nghiêm ngặt: **khoảng 55%**.
-- Mức production tương đương một dịch vụ streaming thương mại lớn: **khoảng 30%**.
+CineWave hiện là release candidate production cho một dịch vụ web streaming nguồn mở/được cấp phép ở quy mô nhỏ. Toàn bộ luồng cốt lõi đã có UI, xử lý server và dữ liệu bền vững; các dashboard không còn dùng uptime, lượt xem, backup hoặc cảnh báo giả.
 
-Điểm số được tính theo các hạng mục MVP ở trang 64–65 của kế hoạch người xem và trang 62–63 của kế hoạch Admin. Một chức năng chỉ được tính hoàn thành khi có giao diện, xử lý phía server và dữ liệu bền vững; giao diện minh họa không được tính đủ điểm.
+Đây không phải hạ tầng tương đương Netflix/Disney+: DRM đa nền tảng, transcoding farm, email provider, MFA/WebAuthn, SIEM/pager, app TV/mobile và multi-region DR vẫn cần dịch vụ cùng ngân sách vận hành riêng.
 
-## Đã hoàn thành
+## Hoàn thành trong release
 
-- Landing page công khai theo nhận diện CineWave, responsive và hỗ trợ truy cập.
-- Tài khoản local, mật khẩu PBKDF2, session băm lưu trong D1, đăng xuất thiết bị khác.
-- Tối đa 5 hồ sơ; chọn hồ sơ; maturity/kids; ngôn ngữ phụ đề và autoplay.
-- Trang chủ, catalog, lọc thể loại, tìm kiếm không dấu, chi tiết phim và series demo.
-- Phim mở thật có hồ sơ quyền, nguồn, giấy phép, checksum và file MP4 local.
-- My List theo hồ sơ, lịch sử, tiếp tục xem, lưu tiến độ định kỳ.
-- Gói dịch vụ sandbox và giới hạn số luồng phát.
-- Admin dashboard, CRUD nội dung CMS, trạng thái draft/published/hidden.
-- Chặn xuất bản nếu thiếu media hoặc giấy phép.
-- Nội dung CMS đã xuất bản xuất hiện trong browse, search, detail và player.
-- Danh sách user, khóa/mở tài khoản, thu hồi session khi khóa.
-- Audit log cho thao tác nội dung, tài khoản, hồ sơ và cài đặt.
-- Migration database, lint, build và test tự động.
+- Landing, browse/search/trending, title detail, responsive và khả năng truy cập.
+- Catalog phim nguồn mở có nguồn, giấy phép, attribution, checksum và local MP4 fallback.
+- Player MP4/WebM và HLS.js adaptive playback, HTTP Range từ R2, WebVTT, resume, progress, tốc độ, PiP và fullscreen.
+- Tài khoản password PBKDF2, Turnstile, D1 rate-limit, cookie production, session theo thiết bị và thu hồi session.
+- Nhiều profile, kids/maturity, locale, subtitle preference, autoplay, watchlist, reaction, history và recommendations.
+- Đổi mật khẩu, xuất JSON dữ liệu và anonymize tài khoản.
+- Gói thành viên, giới hạn concurrent streams, VietQR và SePay webhook idempotent; payment fail-closed khi thiếu runtime config.
+- CMS title/editorial/blog/program/podcast, lịch xuất bản, R2 upload poster/video/subtitle và rights metadata.
+- RBAC server-side Super Admin/Content Manager/Support/Analyst, account lock, role assignment và audit log.
+- Admin metrics/security/system lấy trực tiếp từ D1/runtime capability, không hiển thị số liệu minh họa.
+- PWA manifest/service worker với offline fallback; robots, sitemap và dynamic absolute metadata.
+- CSP/HSTS/security headers, same-origin mutation guard, JSON/upload size validation, request ID và health endpoint.
+- Migration D1 đến `0010_eminent_vapor`, D1 runtime schema v11, R2 binding `MEDIA`.
+- CI workflow, operations/security runbooks và quy trình backup/restore/incident response.
 
-## Hoàn thành một phần
+## Kết quả xác minh
 
-- Media ingest hiện nhận URL/file có sẵn trong `/public/media`; chưa có upload blob lên R2 và encoding job.
-- Poster hiện nhận URL; chưa có kho media, crop và kiểm tra kích thước.
-- Thể loại được quản lý dưới dạng metadata từng phim; chưa có màn hình CRUD category độc lập.
-- Series hiển thị danh sách tập demo; chưa có CRUD mùa/tập trong CMS.
-- Phân quyền mới có viewer/admin và kiểm tra backend; chưa có RBAC chi tiết cho Content Manager, Reviewer, Support và Billing.
-- Dashboard có số liệu vận hành cơ bản; chưa có biểu đồ thời gian, doanh thu và lỗi playback.
-- Browser E2E đã phủ các luồng chính của khách, viewer và admin; chưa phủ toàn bộ ma trận vai trò Reviewer, Support và Billing vì các vai trò này chưa được triển khai.
+- `npm run lint`: đạt, không warning.
+- `npm run catalog:test`: 5/5 đạt.
+- `node --test tests/rendered-html.test.mjs`: 23/23 đạt.
+- `npm run test:e2e`: 10/10 đạt trên Chromium với D1 E2E tách biệt.
+- `npm run build`: đạt trên Vinext/Vite Cloudflare target.
+- `npm audit --omit=dev`: 0 production advisory.
 
-## Chưa hoàn thành / blocker để production
+## Cần cấu hình ở môi trường production
 
-- HLS/DASH adaptive bitrate, nhiều rendition và chuyển chất lượng không gián đoạn.
-- Phụ đề WebVTT/SRT, nhiều audio track và accessibility nâng cao.
-- Upload video/poster qua object storage, virus scan, checksum và pipeline FFmpeg.
-- DRM Widevine/FairPlay/PlayReady và tải offline an toàn.
-- MFA cho admin, RBAC chi tiết, maker-checker và step-up authentication.
-- Workflow reviewer, lịch xuất bản, quản lý rights theo lãnh thổ và thời gian.
-- Quản lý gói, giao dịch, hóa đơn, refund, banner và notification trong Admin.
-- Email xác thực/reset mật khẩu, rate limit, CAPTCHA và cảnh báo đăng nhập bất thường.
-- CI/CD thực tế, metrics, tracing, alerting, backup/restore đã diễn tập.
-- Mobile/Smart TV, CDN, multi-region, disaster recovery và load/security test độc lập.
+- Turnstile production keys + allowed hostname; `CINEWAVE_LOCAL_AUTH=0`.
+- Bootstrap `ADMIN_EMAILS` tối thiểu và rà soát RBAC sau lần đăng nhập đầu.
+- VietQR beneficiary + SePay webhook secret nếu mở thanh toán.
+- TMDB/Supabase chỉ khi dùng catalog import tương ứng.
+- Cloudflare D1 backup/time-travel, R2 lifecycle/versioning, external health monitor và alert destination.
 
-## Ưu tiên tiếp theo
+## Giới hạn không được tuyên bố là đã hoàn thành
 
-1. HLS + WebVTT cho ít nhất một phim mở.
-2. Upload R2 + encoding FFmpeg + trạng thái job.
-3. RBAC và MFA cho Admin.
-4. Series/season/episode CRUD và subtitle management.
-5. Mở rộng E2E theo RBAC, backup/restore và observability.
+- Email verification/reset, MFA/WebAuthn và maker-checker cho thao tác tài chính.
+- DRM Widevine/FairPlay/PlayReady, offline license và forensic watermark.
+- FFmpeg transcoding pipeline nhiều rendition, virus scanning và signed HLS segments.
+- CRUD season/episode chuyên sâu, nhiều audio track và studio subtitle workflow.
+- Refund/support ticket automation, tax invoice provider và revenue accounting.
+- Security/load/pentest độc lập, multi-region failover và disaster recovery đã chứng nhận.
+
+Các giới hạn này không chặn việc phát hành catalog nguồn mở quy mô nhỏ khi runtime config và checklist trong `docs/OPERATIONS.md` đã hoàn tất; chúng là gate bắt buộc trước khi mở nội dung thương mại rủi ro cao hoặc lượng người dùng lớn.

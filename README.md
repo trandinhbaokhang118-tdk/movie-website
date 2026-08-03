@@ -1,6 +1,14 @@
 # CineWave
 
-CineWave là MVP nền tảng xem phim với catalog có nguồn gốc rõ ràng, tài khoản người dùng, hồ sơ xem riêng, watchlist, lịch sử xem, gói thành viên và khu vực quản trị. Dự án chạy theo mô hình Next.js-compatible trên Cloudflare Worker thông qua Vinext.
+CineWave là web app xem phim production-ready quy mô nhỏ, có catalog nguồn mở được kiểm chứng, tài khoản và nhiều hồ sơ, player MP4/HLS + WebVTT, watchlist/lịch sử, thanh toán VietQR đối soát SePay, CMS và RBAC quản trị. Ứng dụng chạy trên Cloudflare Worker qua Vinext, lưu dữ liệu trong D1 và media upload trong R2.
+
+## Trạng thái release
+
+- Build production, ESLint, 23 contract tests, 5 crawler tests và 10 Playwright E2E đều đạt.
+- Dependency production có `0` advisory ở lần chạy `npm audit --omit=dev` gần nhất.
+- Thanh toán tự chuyển sang trạng thái tạm dừng nếu thiếu bất kỳ cấu hình thụ hưởng/webhook nào; source không chứa tài khoản ngân hàng hoặc secret mặc định.
+- Các tính năng cần dịch vụ bên ngoài (Turnstile production, SePay, TMDB, Supabase) chỉ bật khi runtime secret tương ứng đã được cấu hình.
+- Hướng dẫn vận hành, backup, restore và incident response nằm trong `docs/OPERATIONS.md`; mô hình bảo mật nằm trong `docs/SECURITY.md`.
 
 ## Bàn giao nhanh
 
@@ -69,7 +77,7 @@ Mở `http://localhost:3000`. Dữ liệu D1 local được tạo trong `.wrangl
 - `/my-list`, `/history`: Watchlist và lịch sử xem theo từng profile.
 - `/night`: Gợi ý phim theo cảm xúc và thời lượng còn lại.
 - `/plans`, `/checkout/[id]`: Tạo hóa đơn VietQR và theo dõi thanh toán.
-- `/admin`: Khu vực quản trị, chỉ cho email thuộc `ADMIN_EMAILS`.
+- `/admin`: Khu vực quản trị theo vai trò Super Admin, Content Manager, Support và Analyst.
 - `/api/health`: Health/readiness endpoint.
 
 ## Kiến trúc và vị trí cần biết
@@ -85,7 +93,8 @@ Mở `http://localhost:3000`. Dữ liệu D1 local được tạo trong `.wrangl
 | `db/runtime.ts` | Truy cập database ở runtime |
 | `drizzle/` | Migration D1 |
 | `supabase/` | Schema, migration và seed Supabase |
-| `public/media/` | Artwork và video demo local |
+| `public/media/` | Artwork và phim nguồn mở cục bộ |
+| `docs/` | Runbook vận hành, backup/restore và mô hình bảo mật |
 | `tools/crawl_movies.py` | Crawler Internet Archive/TMDB |
 | `worker/index.ts` | Entrypoint Cloudflare Worker |
 | `tests/`, `e2e/` | Unit/render test và E2E test |
@@ -95,7 +104,9 @@ Mở `http://localhost:3000`. Dữ liệu D1 local được tạo trong `.wrangl
 - D1 local lưu tài khoản, session, profile, watchlist, progress, reaction và audit.
 - Supabase PostgreSQL dùng cho catalog chuẩn hóa và có RLS. Không đưa service-role key lên client.
 - Mật khẩu được băm PBKDF2-SHA-256; session dùng cookie `HttpOnly` và database chỉ lưu hash của session token.
-- Quyền admin luôn được kiểm tra phía server qua `ADMIN_EMAILS`; đăng nhập không tự cấp quyền admin.
+- Quyền admin luôn được kiểm tra phía server. `ADMIN_EMAILS` cấp bootstrap Super Admin; các vai trò còn lại được gán trong `/admin/permissions` và ghi audit log.
+- Cookie session bật `Secure` ngoài loopback; request mutation kiểm tra same-origin; login/register có Turnstile và rate-limit D1.
+- Người dùng có thể đổi mật khẩu, thu hồi thiết bị, xuất JSON dữ liệu và xóa/anonymize tài khoản tại `/account`.
 
 ## Làm việc với database
 
@@ -118,7 +129,7 @@ TMDB chỉ phục vụ metadata/trailer; TMDB không cấp quyền phát phim đ
 python tools/crawl_movies.py tmdb --token "$TMDB_ACCESS_TOKEN"
 ```
 
-Video demo `Sprite Fright` có bản local tại `public/media/sprite-fright-2021.mp4`; player ưu tiên file local và dùng Internet Archive làm nguồn dự phòng.
+`Sprite Fright` có bản local đã kiểm chứng tại `public/media/sprite-fright-2021.mp4`; player ưu tiên file local và dùng Internet Archive làm nguồn dự phòng. CMS nhận MP4/WebM hoặc HLS URL, poster và phụ đề WebVTT; file upload được lưu vào R2 riêng tư và phát qua route hỗ trợ HTTP Range.
 
 ## Thanh toán VietQR và SePay
 
@@ -127,18 +138,23 @@ Video demo `Sprite Fright` có bản local tại `public/media/sprite-fright-202
 3. Chọn xác thực API key và dùng tiền tố mã thanh toán `CW`.
 4. Chỉ kích hoạt gói khi tài khoản nhận tiền, mã hóa đơn và số tiền khớp.
 
-Localhost có thể tạo mã QR nhưng không nhận webhook từ SePay nếu chưa có tunnel hoặc URL public. Trước khi triển khai thật, cần xác minh thông tin tài khoản thụ hưởng, bật HTTPS, bảo vệ secrets, theo dõi các giao dịch không khớp và chuẩn bị quy trình đối soát/hoàn tiền.
+Nếu thiếu cấu hình thanh toán, nút tạo hóa đơn bị vô hiệu hóa và không có QR giả. Localhost chỉ nhận webhook nếu có tunnel/URL công khai. Trước khi mở giao dịch thật, cần xác minh tài khoản thụ hưởng, webhook HTTPS, secret riêng, cảnh báo giao dịch lệch và quy trình đối soát/hoàn tiền.
 
 ## Checklist trước khi bàn giao hoặc triển khai
 
-- [ ] Đã chạy `npm run lint`.
-- [ ] Đã chạy `npm test` và `npm run test:e2e`.
+- [x] Đã chạy `npm run lint`.
+- [x] Đã chạy contract/crawler tests, build và `npm run test:e2e`.
+- [x] `npm audit --omit=dev` không còn advisory production.
 - [ ] `.env.local` không được commit và các secret production đã được cập nhật.
 - [ ] `ADMIN_EMAILS` chỉ chứa người được cấp quyền.
 - [ ] Turnstile dùng key production và `CINEWAVE_LOCAL_AUTH=0`.
 - [ ] SePay webhook dùng HTTPS, secret riêng và được kiểm thử idempotency.
 - [ ] Catalog có bằng chứng nguồn/giấy phép; không đưa phim thương mại chưa có quyền phát hành vào player.
 - [ ] Kiểm tra `/api/health` sau deploy.
+
+## Giới hạn đã biết
+
+Release này phù hợp cho web streaming nguồn mở/được cấp phép ở quy mô nhỏ. DRM thương mại, encode nhiều rendition bằng FFmpeg, virus scanning chuyên dụng, email verification/reset, MFA phần cứng, ứng dụng TV/mobile native và multi-region disaster recovery cần nhà cung cấp cùng hạ tầng riêng; không được mô phỏng hoặc tuyên bố là đã có.
 
 ## Lưu ý bản quyền
 

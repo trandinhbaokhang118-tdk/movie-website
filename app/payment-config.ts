@@ -9,11 +9,18 @@ type PaymentEnv = {
 
 export function paymentMerchant() {
   const config = env as unknown as PaymentEnv;
-  return {
-    bankCode: (config.PAYMENT_BANK_CODE ?? "ACB").trim().toUpperCase(),
-    accountNumber: (config.PAYMENT_BANK_ACCOUNT ?? "36345057").replace(/\s/g, ""),
-    accountName: (config.PAYMENT_ACCOUNT_NAME ?? "TRAN TAN PHONG").trim().toUpperCase(),
+  const merchant = {
+    bankCode: (config.PAYMENT_BANK_CODE ?? "").trim().toUpperCase(),
+    accountNumber: (config.PAYMENT_BANK_ACCOUNT ?? "").replace(/\s/g, ""),
+    accountName: (config.PAYMENT_ACCOUNT_NAME ?? "").trim().toUpperCase(),
   };
+  if (!/^[A-Z0-9]{2,12}$/.test(merchant.bankCode) || !/^\d{6,24}$/.test(merchant.accountNumber) || merchant.accountName.length < 2) return null;
+  return merchant;
+}
+
+export function paymentConfigurationStatus() {
+  const merchant = paymentMerchant();
+  return { merchantConfigured: Boolean(merchant), webhookConfigured: Boolean(sepayWebhookApiKey()), ready: Boolean(merchant && sepayWebhookApiKey()) };
 }
 
 export function sepayWebhookApiKey() {
@@ -22,6 +29,7 @@ export function sepayWebhookApiKey() {
 
 export function vietQrImageUrl(amountVnd: number, transferContent: string) {
   const merchant = paymentMerchant();
+  if (!merchant) throw new Error("PAYMENT_NOT_CONFIGURED");
   const query = new URLSearchParams({
     amount: String(amountVnd),
     addInfo: transferContent,

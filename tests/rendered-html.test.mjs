@@ -164,9 +164,9 @@ test("storefront ships required accessibility and playback affordances", async (
 });
 
 test("production controls isolate profiles and authorize playback on the server", async () => {
-  const [schema, runtime, watch, admin, adminRoute, migration] = await Promise.all([
+  const [schema, runtime, watch, adminLayout, adminAccess, adminRoute, migration] = await Promise.all([
     read("db/schema.ts"), read("db/runtime.ts"), read("app/watch/[id]/page.tsx"),
-    read("app/admin/page.tsx"), read("app/api/admin/catalog-sync/route.ts"),
+    read("app/admin/layout.tsx"), read("app/admin/access.ts"), read("app/api/admin/catalog-sync/route.ts"),
     read("drizzle/0002_dusty_maelstrom.sql"),
   ]);
   assert.match(schema, /profileId: text\("profile_id"\)\.notNull/);
@@ -175,7 +175,8 @@ test("production controls isolate profiles and authorize playback on the server"
   assert.match(runtime, /PROFILE_RESTRICTED|SUBSCRIPTION_REQUIRED|STREAM_LIMIT_REACHED|RIGHTS_NOT_AVAILABLE/);
   assert.match(watch, /requireUser/);
   assert.match(watch, /authorizePlayback/);
-  assert.match(admin, /isAdmin/);
+  assert.match(`${adminLayout}\n${adminAccess}`, /getAdminRole/);
+  assert.match(`${adminLayout}\n${adminAccess}`, /adminRoleCan|requireAdminCapability/);
   assert.match(adminRoute, /status: 403/);
   assert.match(migration, /UPDATE `watch_progress` SET `profile_id`/);
 });
@@ -283,13 +284,13 @@ test("public landing page includes cinematic discovery, benefits, FAQ, and signu
 });
 
 test("account switching prevents misleading admin 404 responses", async () => {
-  const [login, experience, actions, admin] = await Promise.all([
-    read("app/login/page.tsx"), read("app/components/AuthExperience.tsx"), read("app/actions/auth.ts"), read("app/admin/page.tsx"),
+  const [login, experience, actions, adminLayout] = await Promise.all([
+    read("app/login/page.tsx"), read("app/components/AuthExperience.tsx"), read("app/actions/auth.ts"), read("app/admin/layout.tsx"),
   ]);
   assert.match(`${login}${experience}`, /currentEmail|chuyển tài khoản/i);
   assert.match(actions, /await endSession\(\);\s*await startSession/);
-  assert.match(admin, /Đây không phải tài khoản quản trị/);
-  assert.doesNotMatch(admin, /notFound\(/);
+  assert.match(adminLayout, /if \(!role\) redirect\("\/account"\)/);
+  assert.doesNotMatch(adminLayout, /notFound\(/);
 });
 
 test("licensed catalog importer and interaction-gated trailers are wired", async () => {
@@ -328,8 +329,8 @@ test("imported titles flow through browse, search, and detail routes", async () 
 });
 
 test("admin MVP persists content workflow, account locks, and audit visibility", async () => {
-  const [admin, actions, runtime, schema, browse, search, detail, watch] = await Promise.all([
-    read("app/admin/page.tsx"), read("app/actions/admin.ts"), read("db/runtime.ts"),
+  const [adminPages, actions, runtime, schema, browse, search, detail, watch] = await Promise.all([
+    Promise.all(["app/admin/page.tsx", "app/admin/content/page.tsx", "app/admin/accounts/page.tsx", "app/admin/configuration/page.tsx", "app/admin/permissions/page.tsx"].map(read)).then((items) => items.join("\n")), read("app/actions/admin.ts"), read("db/runtime.ts"),
     read("db/schema.ts"), read("app/browse/page.tsx"), read("app/search/page.tsx"),
     read("app/title/[id]/page.tsx"), read("app/watch/[id]/page.tsx"),
   ]);
@@ -337,11 +338,30 @@ test("admin MVP persists content workflow, account locks, and audit visibility",
   for (const action of ["createManagedTitle", "updateManagedTitle", "setManagedTitleStatus", "deleteManagedTitle", "setAccountStatus", "listAuditEvents"]) {
     assert.match(`${actions}\n${runtime}`, new RegExp(action));
   }
-  assert.match(admin, /CONTENT OPERATIONS|USER OPERATIONS|AUDIT LOG/);
-  assert.match(admin, /confirmation/);
+  assert.match(adminPages, /CONTENT STUDIO/);
+  assert.match(adminPages, /USER OPERATIONS/);
+  assert.match(adminPages, /Cấu hình & nhật ký/);
+  assert.match(actions, /confirmation/);
+  assert.match(`${actions}\n${runtime}\n${adminPages}`, /setAccountRole|account\.role_changed/);
   assert.match(runtime, /DELETE FROM auth_sessions WHERE user_id/);
   assert.match(runtime, /PUBLISH_REQUIRES_MEDIA_AND_LICENSE/);
   assert.match(`${browse}\n${search}\n${detail}\n${watch}`, /ManagedTitle|managed|findManagedTitle/);
+});
+
+test("production hardening includes rate limits, same-origin mutations, secure cookies, R2 media, HLS and user data controls", async () => {
+  const [auth, authActions, requestSecurity, runtime, schema, worker, player, account, exportRoute, payment, hosting] = await Promise.all([
+    read("app/auth.ts"), read("app/actions/auth.ts"), read("app/lib/request-security.ts"), read("db/runtime.ts"), read("db/schema.ts"),
+    read("worker/index.ts"), read("app/components/Player.tsx"), read("app/account/page.tsx"), read("app/api/account/export/route.ts"),
+    read("app/payment-config.ts"), read(".openai/hosting.json"),
+  ]);
+  assert.match(auth, /shouldUseSecureCookies/);
+  assert.match(`${authActions}\n${runtime}\n${schema}`, /consumeRateLimit|rate_limits|rateLimits/);
+  assert.match(requestSecurity, /isTrustedMutation|PAYLOAD_TOO_LARGE/);
+  assert.match(worker, /strict-transport-security|form-action 'self'|env\.MEDIA\.get/);
+  assert.match(`${runtime}\n${schema}\n${hosting}`, /media_assets|mediaAssets|"r2": "MEDIA"/);
+  assert.match(player, /hls\.js|Hls\.isSupported|<track/);
+  assert.match(`${account}\n${exportRoute}\n${authActions}`, /Tải dữ liệu của tôi|getUserDataExport|anonymizeViewerAccount/);
+  assert.doesNotMatch(payment, /36345057|TRAN TAN PHONG/);
 });
 
 test("Playwright E2E covers public, viewer, playback, and admin workflows safely", async () => {

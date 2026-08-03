@@ -1,3 +1,13 @@
+import { getAdminContentPerformance } from "@/db/runtime";
 import { AdminPageHead } from "../AdminPageHead";
+import { requireAdminCapability } from "../access";
 import { LazyAnalytics } from "../LazyAnalytics";
-export default function AnalyticsPage() { return <div className="admin-dashboard"><AdminPageHead eyebrow="QUAN SÁT" title="Phân tích hoạt động" description="Biểu đồ chỉ được khởi tạo khi cuộn tới vùng hiển thị."/><LazyAnalytics/></div> }
+
+export default async function AnalyticsPage() {
+  await requireAdminCapability("analytics");
+  const performance = await getAdminContentPerformance();
+  return <div className="admin-dashboard">
+    <AdminPageHead eyebrow="QUAN SÁT" title="Hiệu suất nội dung" description="Theo dõi riêng hiệu suất phim, blog và chương trình đã đăng."/>
+    <LazyAnalytics performance={performance}/>
+  </div>;
+}

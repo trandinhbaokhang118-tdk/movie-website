@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Movie } from "@/lib/catalog";
 import type { TrendPeriod, TrendSnapshot } from "@/db/runtime";
+import { PosterArtwork } from "./PosterArtwork";
 import { QuickSaveButton } from "./QuickSaveButton";
 
 const periodLabels: Record<TrendPeriod, string> = { hour: "Giờ", day: "Ngày", week: "Tuần" };
@@ -87,7 +87,7 @@ export function TrendDiscovery({
           return (
             <article className="trend-ranking-card" key={movie.id}>
               <div className={`trend-rank ${index < 3 ? `rank-${index + 1}` : ""}`}><strong>{index + 1}</strong><span className={deltaClass}>{entry.trendPercent > 0 ? "▲" : entry.trendPercent < 0 ? "▼" : "—"} {Math.abs(entry.trendPercent) || ""}</span></div>
-              <Link className="trend-poster" href={`/title/${movie.id}`}><Image src={movie.poster} alt="" width={76} height={110} sizes="76px" /></Link>
+              <Link className="trend-poster" href={`/title/${movie.id}`}><PosterArtwork src={movie.poster} title={movie.title} alt="" sizes="76px" /></Link>
               <div className="trend-movie-copy">
                 <Link href={`/title/${movie.id}`}><h3>{movie.title}</h3></Link>
                 {movie.originalTitle ? <p>{movie.originalTitle}</p> : null}

@@ -25,6 +25,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
 
   if (invoice.status !== "pending") return <main><SiteHeader /><section className="checkout-result page-shell"><span className="checkout-result-icon is-expired">!</span><p className="eyebrow">HÓA ĐƠN ĐÃ HẾT HẠN</p><h1>Tạo một mã thanh toán mới.</h1><p>Không chuyển tiền bằng mã cũ vì hệ thống sẽ không tự kích hoạt gói.</p><Link className="button button-primary" href="/plans">Trở lại chọn gói</Link></section><Footer /></main>;
 
+  if (!merchant) return <main><SiteHeader /><section className="checkout-result page-shell"><span className="checkout-result-icon is-expired">!</span><p className="eyebrow">THANH TOÁN TẠM DỪNG</p><h1>Hóa đơn chưa thể tiếp tục.</h1><p>Cấu hình thụ hưởng chưa sẵn sàng. Không chuyển tiền bằng mã này; hãy quay lại sau khi hệ thống mở thanh toán.</p><Link className="button button-primary" href="/plans">Trở lại chọn gói</Link></section><Footer /></main>;
+
   const qrUrl = vietQrImageUrl(invoice.amountVnd, invoice.transferContent);
   return <main className="checkout-page"><SiteHeader /><section className="checkout-shell page-shell">
     <div className="checkout-heading"><div><p className="eyebrow">CINEWAVE SECURE CHECKOUT</p><h1>Quét mã để hoàn tất.</h1><p>Hóa đơn được giữ trong 30 phút và tự cập nhật khi nhận xác nhận từ SePay.</p></div><span className="status-badge status-pending">Đang chờ thanh toán</span></div>

@@ -39,9 +39,9 @@ const localBindingConfig = {
     // Local bootstrap only. Production authorization must be configured with
     // ADMIN_EMAILS in the Cloudflare Worker environment.
     ADMIN_EMAILS: process.env.ADMIN_EMAILS ?? "admin@cinewave.local",
-    PAYMENT_BANK_CODE: process.env.PAYMENT_BANK_CODE ?? "ACB",
-    PAYMENT_BANK_ACCOUNT: process.env.PAYMENT_BANK_ACCOUNT ?? "36345057",
-    PAYMENT_ACCOUNT_NAME: process.env.PAYMENT_ACCOUNT_NAME ?? "TRAN TAN PHONG",
+    PAYMENT_BANK_CODE: process.env.PAYMENT_BANK_CODE ?? "",
+    PAYMENT_BANK_ACCOUNT: process.env.PAYMENT_BANK_ACCOUNT ?? "",
+    PAYMENT_ACCOUNT_NAME: process.env.PAYMENT_ACCOUNT_NAME ?? "",
     SEPAY_WEBHOOK_API_KEY: process.env.SEPAY_WEBHOOK_API_KEY ?? "",
     CINEWAVE_LOCAL_AUTH: process.env.CINEWAVE_LOCAL_AUTH ?? "0",
     TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY ?? TURNSTILE_TEST_SITE_KEY,

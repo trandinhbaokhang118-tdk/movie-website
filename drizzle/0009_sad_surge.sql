@@ -1,0 +1,1 @@
+ALTER TABLE `managed_titles` ADD `scheduled_at` text;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../auth";
 import { ensureViewer, getActiveProfile, isInWatchlist, recordAnalytics, setWatchlist } from "@/db/runtime";
 import { findMovie } from "@/lib/catalog";
+import { isTrustedMutation, readJsonBody } from "@/app/lib/request-security";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -14,9 +15,12 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (!isTrustedMutation(request)) return NextResponse.json({ error: "CROSS_SITE_REQUEST" }, { status: 403 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
-  const payload = (await request.json()) as { movieId?: string; saved?: boolean };
+  const parsed = await readJsonBody<{ movieId?: string; saved?: boolean }>(request);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+  const payload = parsed.value;
   if (!payload.movieId || !findMovie(payload.movieId) || typeof payload.saved !== "boolean") {
     return NextResponse.json({ error: "INVALID_REQUEST" }, { status: 400 });
   }

@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/app/auth";
-import { ensureViewer, isAdmin, recordCatalogSync } from "@/db/runtime";
+import { adminRoleCan, ensureViewer, getAdminRole, recordCatalogSync } from "@/db/runtime";
 import { syncTmdbCatalog } from "@/lib/tmdb/sync";
+import { isTrustedMutation } from "@/app/lib/request-security";
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!isTrustedMutation(request)) return NextResponse.json({ error: "Yêu cầu khác nguồn đã bị từ chối." }, { status: 403 });
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Bạn cần đăng nhập để đồng bộ catalog." }, { status: 401 });
   const viewer = await ensureViewer(user.email, user.displayName);
-  if (!(await isAdmin(viewer.id, user.email))) {
+  const role = await getAdminRole(viewer.id, user.email);
+  if (!role || !adminRoleCan(role, "content")) {
     return NextResponse.json({ error: "Bạn không có quyền quản trị catalog." }, { status: 403 });
   }
 
