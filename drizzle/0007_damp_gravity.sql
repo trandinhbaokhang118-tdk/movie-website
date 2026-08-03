@@ -3,8 +3,6 @@ CREATE TABLE `runtime_metadata` (
 	`value` text NOT NULL,
 	`updated_at` text NOT NULL
 );
---> statement-breakpoint
-ALTER TABLE `auth_sessions` ADD `user_agent` text;--> statement-breakpoint
-ALTER TABLE `auth_sessions` ADD `ip_address` text;--> statement-breakpoint
-ALTER TABLE `profiles` ADD `avatar_url` text;--> statement-breakpoint
-ALTER TABLE `profiles` ADD `theme` text DEFAULT 'cinewave' NOT NULL;
+
+-- Account device and profile appearance columns are owned by
+-- 0007_account_devices_appearance.sql so fresh and resumed deployments agree.
