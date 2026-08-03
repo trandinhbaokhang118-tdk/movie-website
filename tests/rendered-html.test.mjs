@@ -141,8 +141,8 @@ test("Sprite Fright ships as a verified local MP4 with a remote fallback", async
   const [catalog, video] = await Promise.all([
     read("data/licensed_catalog.json"), readBinary("public/media/sprite-fright-2021.mp4"),
   ]);
-  assert.equal(video.byteLength, 60_602_625);
-  assert.equal(createHash("sha1").update(video).digest("hex"), "b1ff951fbf2af55ee8d6ef0ed4879219be230e6e");
+  assert.equal(video.byteLength, 13_532_131);
+  assert.equal(createHash("sha1").update(video).digest("hex"), "fa4c9e3e5e25c26c4315f83188088037ad5f2c85");
   assert.match(catalog, /"src": "\/media\/sprite-fright-2021\.mp4"/);
   assert.match(catalog, /"fallbackSrc": "https:\/\/archive\.org\/download\/sprite-fright-2021/);
 });
