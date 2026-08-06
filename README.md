@@ -1,169 +1,386 @@
 # CineWave
 
-CineWave là MVP web xem phim quy mô nhỏ đang được củng cố để hướng tới production, có catalog nguồn mở được kiểm chứng, tài khoản và nhiều hồ sơ, player MP4/HLS + WebVTT, watchlist/lịch sử, thanh toán VietQR đối soát SePay, CMS và RBAC quản trị. Ứng dụng chạy trên Cloudflare Worker qua Vinext, lưu dữ liệu trong D1 và media upload trong R2. Các gate còn thiếu được công khai tại `docs/PRODUCTION_READINESS_GATES.md`.
+CineWave là ứng dụng xem phim nguồn mở/được cấp phép, xây dựng bằng React, Next.js qua Vinext và chạy trên Cloudflare Workers. Dự án có đầy đủ khu vực người xem, trình phát video, nhiều hồ sơ, gợi ý phim, thanh toán VietQR/SePay và trang quản trị theo vai trò.
 
-## Trạng thái release
+![Giao diện CineWave](public/og.png)
 
-- Build, ESLint, contract tests, crawler tests, hybrid recommendation tests và Playwright E2E được kiểm tra trong CI.
-- Supabase có job riêng để dựng lại database từ migration/seed, chạy pgTAP theo role và lint schema; chỉ được ghi nhận “đạt” khi workflow của commit bàn giao xanh.
-- Dependency production có `0` advisory ở lần chạy `npm audit --omit=dev` gần nhất.
-- Thanh toán tự chuyển sang trạng thái tạm dừng nếu thiếu bất kỳ cấu hình thụ hưởng/webhook nào; source không chứa tài khoản ngân hàng hoặc secret mặc định.
-- Các tính năng cần dịch vụ bên ngoài (Turnstile production, SePay, TMDB, Supabase) chỉ bật khi runtime secret tương ứng đã được cấu hình.
-- Hướng dẫn vận hành, backup, restore và incident response nằm trong `docs/OPERATIONS.md`; mô hình bảo mật nằm trong `docs/SECURITY.md`.
+## Chức năng chính
 
-## Bàn giao nhanh
+- Khám phá, tìm kiếm và xem chi tiết phim.
+- Phát MP4/WebM/HLS, phụ đề WebVTT, tiếp tục xem và lưu lịch sử.
+- Đăng ký, đăng nhập, quản lý nhiều hồ sơ và giới hạn nội dung trẻ em.
+- Danh sách yêu thích, đánh giá, lịch sử xem và gợi ý phim theo ngữ cảnh.
+- Gói thành viên, tạo mã VietQR và nhận trạng thái thanh toán từ SePay.
+- CMS quản lý phim, lịch phát hành, blog, chương trình và podcast.
+- Admin analytics, quản lý tài khoản, RBAC, audit log và giám sát hệ thống.
+- D1 lưu dữ liệu ứng dụng; R2 lưu media; Supabase PostgreSQL hỗ trợ schema catalog/recommendation tùy chọn.
 
-### Yêu cầu môi trường
+## Công nghệ sử dụng
 
-- Node.js `>= 22.13`
-- npm
-- Python 3 (chỉ cần khi crawl catalog hoặc chạy test crawler)
-- Tài khoản Supabase nếu dùng catalog/đồng bộ Supabase
-- Tài khoản Cloudflare nếu triển khai Worker hoặc dùng Turnstile thực tế
+| Thành phần | Công nghệ |
+| --- | --- |
+| Giao diện | React 19, Next.js 16, Vinext, Tailwind CSS |
+| Runtime | Cloudflare Workers, Vite |
+| Database chính | Cloudflare D1, Drizzle ORM |
+| Media | Cloudflare R2, MP4/WebM/HLS, WebVTT |
+| Database tùy chọn | Supabase PostgreSQL, RLS, pgTAP |
+| Kiểm thử | Node Test Runner, Playwright, Python unittest |
+| CI | GitHub Actions |
 
-### Chạy local
+## 1. Yêu cầu môi trường
+
+Bắt buộc để chạy website:
+
+- Git.
+- Node.js `>= 22.13.0`.
+- npm đi kèm Node.js.
+
+Chỉ cần khi dùng tính năng tương ứng:
+
+- Python 3.12+ để chạy crawler và test crawler.
+- Docker Desktop cùng Supabase CLI `2.102.0` để dựng và kiểm thử Supabase local.
+- Tài khoản Cloudflare để triển khai Workers/D1/R2 và dùng Turnstile production.
+- Tài khoản Supabase, TMDB hoặc SePay nếu bật các tích hợp này.
+
+Kiểm tra phiên bản Node.js và npm:
 
 ```bash
-git clone <repository-url>
-cd cinewave
-npm install
+node --version
+npm --version
+```
+
+## 2. Tải mã nguồn và cài đặt
+
+```bash
+git clone https://github.com/trandinhbaokhang118-tdk/movie-website.git
+cd movie-website
+npm ci
+```
+
+Tạo file môi trường trên Windows PowerShell:
+
+```powershell
 Copy-Item .env.example .env.local
+```
+
+Trên macOS/Linux:
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local` đã được Git bỏ qua. Không commit file này và không đưa secret thật vào source code.
+
+## 3. Cấu hình chạy local tối thiểu
+
+Mở `.env.local` và đặt tối thiểu:
+
+```dotenv
+CINEWAVE_LOCAL_AUTH=1
+ADMIN_EMAILS=admin@example.com
+CINEWAVE_RECOMMENDER_MODE=off
+CINEWAVE_RECOMMENDER_CANARY_PERCENT=10
+```
+
+Thay `admin@example.com` bằng email bạn sẽ dùng để đăng ký tài khoản quản trị. Có thể dùng nhiều email, ngăn cách bằng dấu phẩy:
+
+```dotenv
+ADMIN_EMAILS=admin@example.com,owner@example.com
+```
+
+`CINEWAVE_LOCAL_AUTH=1` chỉ bỏ qua Turnstile khi request đến từ `localhost` hoặc `127.0.0.1`. Production luôn phải đặt biến này thành `0`.
+
+Website vẫn chạy được nếu chưa cấu hình Supabase, TMDB hoặc thanh toán. Những tích hợp còn thiếu sẽ ở trạng thái `disabled` thay vì dùng dữ liệu giả.
+
+## 4. Khởi động dự án
+
+```bash
 npm run dev
 ```
 
-Mở `http://localhost:3000`. Dữ liệu D1 local được tạo trong `.wrangler/` khi ứng dụng nhận request đầu tiên.
+Mở [http://localhost:3000](http://localhost:3000). D1 và R2 local được Wrangler/Miniflare quản lý trong thư mục `.wrangler/`; schema D1 được khởi tạo khi ứng dụng nhận request đầu tiên.
 
-> Trên macOS/Linux, thay dòng `Copy-Item` bằng `cp .env.example .env.local`.
+Nếu cổng `3000` đang được sử dụng:
 
-## Cấu hình môi trường
+```bash
+npm run dev -- --host 127.0.0.1 --port 3001
+```
 
-Điền các biến cần thiết vào `.env.local`. Không commit file này hoặc bất kỳ secret nào.
+Sau khi sửa `.env.local`, hãy dừng và chạy lại development server để nạp cấu hình mới.
 
-| Biến | Mục đích | Bắt buộc khi |
+## 5. Tạo tài khoản và sử dụng website
+
+### Người xem
+
+1. Mở `/register` và đăng ký bằng email, tên hiển thị, mật khẩu.
+2. Đăng nhập tại `/login` nếu chưa có phiên.
+3. Tạo hoặc chuyển hồ sơ tại `/profiles`.
+4. Duyệt phim tại `/browse`, tìm kiếm tại `/search` hoặc xem gợi ý tại `/night`.
+5. Mở `/title/[id]` để xem thông tin, thêm vào danh sách hoặc bắt đầu phát.
+6. Theo dõi danh sách tại `/my-list` và lịch sử tại `/history`.
+7. Quản lý thiết bị, mật khẩu, quyền riêng tư và dữ liệu cá nhân tại `/account`.
+8. Xem gói thành viên tại `/plans`. Thanh toán chỉ hoạt động khi VietQR và SePay đã được cấu hình đầy đủ.
+
+### Quản trị viên
+
+1. Đảm bảo email cần cấp quyền đã có trong `ADMIN_EMAILS` trước khi khởi động server.
+2. Đăng ký hoặc đăng nhập bằng đúng email đó.
+3. Truy cập [http://localhost:3000/admin](http://localhost:3000/admin).
+4. Super Admin có thể gán các vai trò khác tại `/admin/permissions`.
+
+| Vai trò | Quyền |
+| --- | --- |
+| Super Admin | Toàn bộ dashboard, nội dung, tài khoản, phân quyền, hệ thống và audit |
+| Content Manager | Tổng quan, analytics và quản lý nội dung |
+| Support | Tổng quan, quản lý tài khoản và audit |
+| Analyst | Tổng quan và analytics chỉ đọc |
+
+Các khu vực admin thường dùng:
+
+- `/admin/content`: quản lý phim và metadata.
+- `/admin/schedule`: chương trình và lịch phát hành.
+- `/admin/blog`: bài viết.
+- `/admin/podcast`: tập podcast.
+- `/admin/analytics`: hiệu suất phim, blog, chương trình và podcast.
+- `/admin/accounts`: khóa hoặc mở khóa tài khoản.
+- `/admin/permissions`: gán vai trò.
+- `/admin/system`, `/admin/security`: trạng thái runtime và bảo mật.
+- `/admin/configuration`: audit log.
+
+Nếu truy cập `/admin` nhưng bị chuyển về `/account`, hãy kiểm tra email đăng nhập có khớp hoàn toàn với `ADMIN_EMAILS` và đã khởi động lại server sau khi đổi `.env.local` hay chưa.
+
+## 6. Biến môi trường
+
+| Biến | Mục đích | Khi nào cần |
 | --- | --- | --- |
-| `TMDB_ACCESS_TOKEN` hoặc `TMDB_API_KEY` | Nhập metadata/trailer từ TMDB | Dùng import TMDB |
-| `SUPABASE_URL` | URL Supabase project | Dùng Supabase |
-| `SUPABASE_PUBLISHABLE_KEY` | Public/publishable key Supabase | Dùng Supabase |
-| `ADMIN_EMAILS` | Danh sách email admin, ngăn cách bởi dấu phẩy | Cấp quyền `/admin` |
-| `TURNSTILE_SITE_KEY` | Site key Cloudflare Turnstile | Bật Turnstile thực tế |
-| `TURNSTILE_SECRET_KEY` | Secret key Cloudflare Turnstile | Bật Turnstile thực tế |
-| `TURNSTILE_ALLOWED_HOSTNAMES` | Host được phép xác thực Turnstile | Production |
-| `CINEWAVE_LOCAL_AUTH` | Cho phép xác thực local (`1`) | Chỉ local; production luôn `0` |
+| `CINEWAVE_LOCAL_AUTH` | Cho phép xác thực local không cần Turnstile thật | Đặt `1` khi phát triển local; production đặt `0` |
+| `ADMIN_EMAILS` | Danh sách email bootstrap Super Admin | Khi cần truy cập `/admin` |
+| `CINEWAVE_RECOMMENDER_MODE` | Chế độ `off`, `shadow`, `canary` hoặc `active` | Khi triển khai hybrid recommender |
+| `CINEWAVE_RECOMMENDER_CANARY_PERCENT` | Phần trăm người dùng thuộc nhóm canary | Khi mode là `canary` |
+| `TMDB_ACCESS_TOKEN` | TMDB v4 bearer token | Đồng bộ metadata/trailer từ TMDB |
+| `TMDB_API_KEY` | TMDB v3 API key thay thế access token | Đồng bộ metadata/trailer từ TMDB |
+| `SUPABASE_URL` | URL Data API của Supabase project | Kiểm tra/kết nối Supabase |
+| `SUPABASE_PUBLISHABLE_KEY` | Publishable key phía client/runtime | Kiểm tra/kết nối Supabase |
+| `TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key | Production |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key | Production |
+| `TURNSTILE_ALLOWED_HOSTNAMES` | Danh sách hostname được phép, ngăn cách bằng dấu phẩy | Production |
 | `PAYMENT_BANK_CODE` | Mã ngân hàng nhận tiền VietQR | Bật thanh toán |
 | `PAYMENT_BANK_ACCOUNT` | Số tài khoản nhận tiền | Bật thanh toán |
 | `PAYMENT_ACCOUNT_NAME` | Tên chủ tài khoản | Bật thanh toán |
 | `SEPAY_WEBHOOK_API_KEY` | Khóa xác thực webhook SePay | Bật thanh toán |
 
-## Các lệnh quan trọng
+Không dùng Supabase secret key hoặc legacy `service_role` key cho `SUPABASE_PUBLISHABLE_KEY`; hai loại key đặc quyền này có thể bỏ qua RLS và không được xuất hiện trong trình duyệt hoặc repository.
 
-| Lệnh | Công dụng |
-| --- | --- |
-| `npm run dev` | Chạy môi trường phát triển |
-| `npm run build` | Build production Worker-compatible |
-| `npm run start` | Chạy bản build |
-| `npm run lint` | Kiểm tra ESLint |
-| `npm run typecheck` | Kiểm tra TypeScript và Cloudflare Worker runtime types |
-| `npm test` | Build và chạy test HTML render |
-| `npm run test:e2e` | Chạy Playwright E2E trên cổng 3100 với DB riêng |
-| `npm run test:recommendation` | Chạy offline regression gate cho hybrid ranker |
-| `npm run test:unit` | Chạy toàn bộ unit test TypeScript |
-| `npm run test:supabase` | Chạy pgTAP trên Supabase local đã khởi động |
-| `npm run db:generate` | Tạo Drizzle migration sau khi sửa schema |
-| `npm run db:status` | Xem các bảng D1 local |
-| `npm run catalog:crawl` | Crawl catalog hợp lệ từ Internet Archive |
-| `npm run catalog:test` | Kiểm tra crawler Python |
+## 7. Supabase local
 
-## Chức năng chính
+Supabase không bắt buộc cho luồng xem phim chính. Phần này dùng để kiểm thử migrations, seed, RLS và nền tảng recommendation PostgreSQL.
 
-- `/`: Trang chủ theo trạng thái đăng nhập; trang giới thiệu khi chưa đăng nhập.
-- `/browse`, `/search`, `/title/[id]`: Khám phá, tìm kiếm và xem thông tin phim.
-- `/watch/[id]`: Player video, kiểm tra quyền xem trước khi phát.
-- `/login`, `/register`, `/profiles`, `/account`: Xác thực, hồ sơ và tài khoản.
-- `/my-list`, `/history`: Watchlist và lịch sử xem theo từng profile.
-- `/night`: Gợi ý phim theo cảm xúc và thời lượng còn lại.
-- `/plans`, `/checkout/[id]`: Tạo hóa đơn VietQR và theo dõi thanh toán.
-- `/admin`: Khu vực quản trị theo vai trò Super Admin, Content Manager, Support và Analyst.
-- `/api/health`: Health/readiness endpoint.
-
-## Kiến trúc và vị trí cần biết
-
-| Khu vực | Vai trò |
-| --- | --- |
-| `app/` | Routes, UI, server actions và API routes |
-| `app/components/` | Các thành phần giao diện tái sử dụng |
-| `app/globals.css` | Toàn bộ style hệ thống và responsive layout |
-| `data/licensed_catalog.json` | Catalog phim đã kiểm tra nguồn/phát hành |
-| `lib/catalog.ts` | Kiểu dữ liệu và truy vấn catalog nội bộ |
-| `db/schema.ts` | Schema D1/Drizzle |
-| `db/runtime.ts` | Truy cập database ở runtime |
-| `drizzle/` | Migration D1 |
-| `supabase/` | Schema, migration và seed Supabase |
-| `public/media/` | Artwork và phim nguồn mở cục bộ |
-| `docs/` | Runbook vận hành, backup/restore và mô hình bảo mật |
-| `tools/crawl_movies.py` | Crawler Internet Archive/TMDB |
-| `worker/index.ts` | Entrypoint Cloudflare Worker |
-| `tests/`, `e2e/` | Unit/render test và E2E test |
-
-### Dữ liệu và xác thực
-
-- D1 local lưu tài khoản, session, profile, watchlist, progress, reaction và audit.
-- Supabase PostgreSQL dùng cho catalog chuẩn hóa và có RLS. Không đưa service-role key lên client.
-- Mật khẩu được băm PBKDF2-SHA-256; session dùng cookie `HttpOnly` và database chỉ lưu hash của session token.
-- Quyền admin luôn được kiểm tra phía server. `ADMIN_EMAILS` cấp bootstrap Super Admin; các vai trò còn lại được gán trong `/admin/permissions` và ghi audit log.
-- Cookie session bật `Secure` ngoài loopback; request mutation kiểm tra same-origin; login/register có Turnstile và rate-limit D1.
-- Người dùng có thể đổi mật khẩu, thu hồi thiết bị, xuất JSON dữ liệu và xóa/anonymize tài khoản tại `/account`.
-
-## Làm việc với database
-
-Sau khi thay đổi `db/schema.ts`:
+1. Khởi động Docker Desktop.
+2. Cài Supabase CLI `2.102.0` hoặc bảo đảm lệnh `supabase` cùng phiên bản có trong `PATH`.
+3. Từ thư mục gốc dự án, chạy:
 
 ```bash
-npm run db:generate
-npm run db:status
+supabase db start
+supabase test db --local
+supabase db lint --local --level error --fail-on error
+supabase db advisors --local --type all --level error --fail-on error
 ```
 
-Không xóa `.wrangler/state` nếu cần giữ dữ liệu demo local. Với E2E, runner dùng database riêng và tự reset nên không làm thay đổi dữ liệu local.
+Nếu cần dựng lại database local hoàn toàn từ migrations và `supabase/seed.sql`:
 
-## Catalog và media
+```bash
+supabase db reset --local
+```
 
-Catalog phát phim chỉ dùng nội dung Creative Commons hoặc Public Domain có thông tin nguồn và giấy phép. `npm run catalog:crawl` lấy metadata từ Internet Archive và ghi vào `data/licensed_catalog.json`.
+Lệnh trên xóa dữ liệu Supabase local hiện có; không dùng `--linked` với database production.
 
-TMDB chỉ phục vụ metadata/trailer; TMDB không cấp quyền phát phim đầy đủ. Có thể nhập dữ liệu TMDB bằng:
+Xem URL/key local:
+
+```bash
+supabase status
+```
+
+Có thể đưa URL và publishable/anon key do local stack in ra vào `.env.local`:
+
+```dotenv
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_PUBLISHABLE_KEY=<local-publishable-or-anon-key>
+```
+
+Dừng local stack khi hoàn tất:
+
+```bash
+supabase stop --no-backup
+```
+
+## 8. Catalog và media
+
+Catalog mặc định nằm tại `data/licensed_catalog.json`. Chỉ đưa nội dung Creative Commons, Public Domain hoặc nội dung có quyền phân phối hợp lệ vào player.
+
+Chạy crawler Internet Archive:
+
+```bash
+npm run catalog:crawl
+```
+
+Nhập metadata/trailer từ TMDB:
 
 ```bash
 python tools/crawl_movies.py tmdb --token "$TMDB_ACCESS_TOKEN"
 ```
 
-`Sprite Fright` có bản local đã kiểm chứng tại `public/media/sprite-fright-2021.mp4`; player ưu tiên file local và dùng Internet Archive làm nguồn dự phòng. CMS nhận MP4/WebM hoặc HLS URL, poster và phụ đề WebVTT; file upload được lưu vào R2 riêng tư và phát qua route hỗ trợ HTTP Range.
+TMDB chỉ cung cấp metadata/trailer, không chứng minh quyền phát hành phim. Mỗi nội dung cần có nguồn, giấy phép, phạm vi sử dụng và attribution riêng.
 
-## Thanh toán VietQR và SePay
+Admin CMS hỗ trợ URL media ngoài hoặc upload poster, MP4/WebM, HLS, WebVTT và audio. Upload được lưu vào R2; video được phục vụ qua route same-origin có hỗ trợ HTTP Range và ETag.
 
-1. Cấu hình các biến `PAYMENT_*` và `SEPAY_WEBHOOK_API_KEY`.
-2. Trên SePay, khai báo webhook HTTPS công khai tới `/api/webhooks/sepay`.
-3. Chọn xác thực API key và dùng tiền tố mã thanh toán `CW`.
-4. Chỉ kích hoạt gói khi tài khoản nhận tiền, mã hóa đơn và số tiền khớp.
+## 9. Thanh toán VietQR và SePay
 
-Nếu thiếu cấu hình thanh toán, nút tạo hóa đơn bị vô hiệu hóa và không có QR giả. Localhost chỉ nhận webhook nếu có tunnel/URL công khai. Trước khi mở giao dịch thật, cần xác minh tài khoản thụ hưởng, webhook HTTPS, secret riêng, cảnh báo giao dịch lệch và quy trình đối soát/hoàn tiền.
+Để bật thanh toán:
 
-## Checklist trước khi bàn giao hoặc triển khai
+1. Điền đủ `PAYMENT_BANK_CODE`, `PAYMENT_BANK_ACCOUNT`, `PAYMENT_ACCOUNT_NAME` và `SEPAY_WEBHOOK_API_KEY`.
+2. Trên SePay, cấu hình webhook HTTPS đến `/api/webhooks/sepay`.
+3. Chọn xác thực API key và giữ tiền tố mã thanh toán `CW`.
+4. Kiểm tra đúng tài khoản thụ hưởng, mã hóa đơn và số tiền trước khi kích hoạt gói.
 
-- [x] Đã chạy `npm run lint`.
-- [x] Đã chạy contract/crawler tests, build và `npm run test:e2e`.
-- [x] Đã có hybrid offline regression set, model card và kill switch.
-- [ ] Workflow Supabase migration reset + pgTAP của commit bàn giao đã xanh.
-- [x] `npm audit --omit=dev` không còn advisory production.
-- [ ] `.env.local` không được commit và các secret production đã được cập nhật.
-- [ ] `ADMIN_EMAILS` chỉ chứa người được cấp quyền.
-- [ ] Turnstile dùng key production và `CINEWAVE_LOCAL_AUTH=0`.
-- [ ] SePay webhook dùng HTTPS, secret riêng và được kiểm thử idempotency.
-- [ ] Catalog có bằng chứng nguồn/giấy phép; không đưa phim thương mại chưa có quyền phát hành vào player.
-- [ ] Kiểm tra `/api/health` sau deploy.
-- [ ] Tất cả gate trong `docs/PRODUCTION_READINESS_GATES.md` có bằng chứng theo release.
+Thiếu một trong bốn biến trên sẽ làm tính năng thanh toán tự tắt. Localhost chỉ nhận webhook từ bên ngoài khi có tunnel HTTPS công khai.
 
-## Giới hạn đã biết
+## 10. Kiểm thử và kiểm tra chất lượng
 
-Release này phù hợp cho web streaming nguồn mở/được cấp phép ở quy mô nhỏ. DRM thương mại, encode nhiều rendition bằng FFmpeg, virus scanning chuyên dụng, email verification/reset, MFA phần cứng, ứng dụng TV/mobile native và multi-region disaster recovery cần nhà cung cấp cùng hạ tầng riêng; không được mô phỏng hoặc tuyên bố là đã có.
+| Lệnh | Công dụng |
+| --- | --- |
+| `npm run lint` | Kiểm tra ESLint |
+| `npm run typecheck` | Kiểm tra TypeScript và Cloudflare Worker types |
+| `npm run test:unit` | Unit test hybrid recommender và HTTP Range |
+| `npm run catalog:test` | Test crawler bằng Python unittest |
+| `npm test` | Build production và chạy contract test HTML |
+| `npm run test:e2e` | Chạy toàn bộ Playwright E2E với D1 riêng |
+| `npm run test:e2e:headed` | Chạy E2E có hiển thị trình duyệt |
+| `npm run test:supabase` | Chạy pgTAP khi Supabase local đang hoạt động |
+| `npm audit --omit=dev` | Kiểm tra dependency production |
 
-## Lưu ý bản quyền
+Chạy bộ kiểm tra thường dùng:
 
-Không dùng dữ liệu TMDB hay trailer để suy ra quyền phát phim. Với bất kỳ phim mới nào, cần lưu nguồn, giấy phép, phạm vi sử dụng, bằng chứng kiểm tra và thông tin credit trước khi phát trên hệ thống.
+```bash
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run catalog:test
+npm test
+npm run test:e2e
+npm audit --omit=dev
+```
+
+Playwright mặc định dùng cổng `3100`. Nếu cổng này bận, PowerShell có thể đổi cổng bằng:
+
+```powershell
+$env:CINEWAVE_E2E_PORT='3199'
+npm run test:e2e
+```
+
+Trên macOS/Linux:
+
+```bash
+CINEWAVE_E2E_PORT=3199 npm run test:e2e
+```
+
+## 11. Database D1 và Drizzle
+
+Sau khi thay đổi `db/schema.ts`, tạo migration mới:
+
+```bash
+npm run db:generate
+```
+
+Xem các bảng trong D1 local:
+
+```bash
+npm run db:status
+```
+
+Không sửa hoặc xóa migrations đã chạy trên production. Với thay đổi mới, tạo migration bổ sung và kiểm thử trên local/staging trước.
+
+## 12. Build và triển khai
+
+Build production:
+
+```bash
+npm run build
+```
+
+Chạy bản build ở local:
+
+```bash
+npm run start
+```
+
+Dự án được cấu hình cho OpenAI Sites/Cloudflare Workers qua `.openai/hosting.json`, với binding D1 là `DB` và R2 là `MEDIA`. Trước khi publish production:
+
+1. Chạy toàn bộ kiểm thử và bảo đảm `npm run build` thành công.
+2. Cấu hình các runtime variable/secret trên nền tảng hosting; không lấy secret từ `.env.local` đưa vào Git.
+3. Đặt `CINEWAVE_LOCAL_AUTH=0`, dùng Turnstile production key và giới hạn `ADMIN_EMAILS`.
+4. Kiểm tra D1 migrations, R2 binding, backup và quyền truy cập.
+5. Sau deploy, gọi `/api/health`, đăng nhập, phát thử media và kiểm tra `/admin/system`.
+
+`wrangler.jsonc` hiện dùng ID D1 placeholder cho local tooling. Không chạy deploy trực tiếp bằng Wrangler tới production trước khi cấu hình đúng database/bucket hoặc sử dụng quy trình Sites đã gắn với project.
+
+## 13. Cấu trúc thư mục
+
+```text
+app/                      Routes, UI, server actions và API
+app/admin/                Khu vực quản trị
+app/components/           Component dùng chung
+data/licensed_catalog.json
+db/                       D1 runtime và Drizzle schema
+drizzle/                  D1 migrations
+lib/                      Catalog, TMDB, Supabase, recommendation
+public/media/             Artwork và media nguồn mở local
+supabase/migrations/      PostgreSQL migrations
+supabase/tests/           pgTAP/RLS tests
+tests/                    Unit, contract và crawler tests
+e2e/                      Playwright tests
+tools/                    Crawler và công cụ hỗ trợ
+worker/                   Cloudflare Worker entrypoint và media range
+docs/                     Tài liệu vận hành và bảo mật
+```
+
+## 14. Xử lý lỗi thường gặp
+
+### Không đăng nhập/đăng ký được ở local
+
+- Kiểm tra `CINEWAVE_LOCAL_AUTH=1`.
+- Chỉ truy cập qua `localhost` hoặc `127.0.0.1`.
+- Khởi động lại server sau khi sửa `.env.local`.
+
+### Không vào được trang admin
+
+- Email đăng nhập phải có trong `ADMIN_EMAILS`.
+- Kiểm tra đúng địa chỉ email đã dùng để đăng ký tài khoản.
+- Khởi động lại server rồi đăng nhập lại.
+
+### Supabase CLI không chạy
+
+- Bảo đảm Docker Desktop đang hoạt động.
+- Dùng Supabase CLI `2.102.0` để khớp CI của repository.
+- Chạy lệnh tại thư mục chứa `supabase/config.toml`.
+
+### Playwright báo cổng đang được sử dụng
+
+- Đóng development server đang chiếm cổng `3100` hoặc đặt `CINEWAVE_E2E_PORT` sang cổng khác.
+
+### Thanh toán hiển thị tạm dừng
+
+- Kiểm tra cả bốn biến `PAYMENT_*` và `SEPAY_WEBHOOK_API_KEY`; thiết kế của hệ thống là fail-closed khi cấu hình thiếu.
+
+## Tài liệu liên quan
+
+- [Trạng thái dự án](PROJECT_STATUS.md)
+- [Vận hành, backup và incident response](docs/OPERATIONS.md)
+- [Mô hình bảo mật](docs/SECURITY.md)
+- [Production readiness gates](docs/PRODUCTION_READINESS_GATES.md)
+- [Hybrid recommender model card](docs/recommendation/MODEL_CARD.md)
+
+## Lưu ý phạm vi sử dụng
+
+Phiên bản hiện tại phù hợp cho MVP streaming nguồn mở/được cấp phép ở quy mô nhỏ. Dự án chưa thay thế hệ thống DRM thương mại, pipeline transcoding nhiều rendition, malware scanning chuyên dụng, MFA/WebAuthn cho admin hoặc multi-region disaster recovery.
+
+Không sử dụng metadata TMDB, trailer hoặc bản ghi Internet Archive để tự suy ra quyền phát hành. Người vận hành chịu trách nhiệm xác minh giấy phép trước khi xuất bản nội dung.
