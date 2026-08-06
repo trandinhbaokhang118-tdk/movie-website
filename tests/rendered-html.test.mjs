@@ -254,6 +254,10 @@ test("local auth uses hashed database sessions and server-validated Cloudflare T
   assert.match(auth, /SESSION_COOKIE/);
   assert.match(actions, /authenticateWithPassword|registerWithPassword/);
   assert.match(`${login}${register}${experience}`, /email|Email/);
+  assert.match(experience, /name="username"/);
+  assert.match(experience, /name="confirmPassword"/);
+  assert.match(actions, /password !== confirmPassword/);
+  assert.match(register, /defaultUsername/);
   assert.match(actions, /verifyTurnstile/);
   assert.match(turnstile, /turnstile\/v0\/siteverify|cf-turnstile-response/);
   assert.match(worker, /challenges\.cloudflare\.com/);

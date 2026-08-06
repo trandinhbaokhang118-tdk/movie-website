@@ -22,8 +22,9 @@ export function HeaderNav() {
       {navItems.map((item) => {
         const itemPath = item.href.split("?")[0];
         const isBrowseItem = itemPath === "/browse";
+        const itemType = "type" in item ? item.type : undefined;
         const isActive = isBrowseItem
-          ? pathname === "/browse" && (item.type === "series" ? browseType === "series" : browseType !== "series")
+          ? pathname === "/browse" && (itemType === "series" ? browseType === "series" : browseType !== "series")
           : itemPath === "/"
             ? pathname === "/"
             : pathname === itemPath || pathname.startsWith(`${itemPath}/`);

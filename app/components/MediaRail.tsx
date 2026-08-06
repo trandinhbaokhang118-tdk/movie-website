@@ -11,6 +11,7 @@ export function MediaRail({
   progressById,
   watchDirectly = false,
   savedMovieIds = [],
+  reasonById,
 }: {
   title: string;
   eyebrow?: string;
@@ -18,6 +19,7 @@ export function MediaRail({
   progressById?: Record<string, number>;
   watchDirectly?: boolean;
   savedMovieIds?: string[];
+  reasonById?: Record<string, string>;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
@@ -66,6 +68,7 @@ export function MediaRail({
             progress={progressById?.[movie.id]}
             href={watchDirectly ? `/watch/${movie.id}` : undefined}
             initialSaved={saved.has(movie.id)}
+            recommendationReason={reasonById?.[movie.id]}
           />
         ))}
         </div>

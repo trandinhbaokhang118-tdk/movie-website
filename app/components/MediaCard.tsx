@@ -9,12 +9,14 @@ export function MediaCard({
   progress,
   href,
   initialSaved = false,
+  recommendationReason,
 }: {
   movie: Movie;
   priority?: boolean;
   progress?: number;
   href?: string;
   initialSaved?: boolean;
+  recommendationReason?: string;
 }) {
   const detailHref = `/title/${movie.id}`;
   const watchHref = movie.video ? `/watch/${movie.id}` : detailHref;
@@ -60,6 +62,7 @@ export function MediaCard({
           <p>
             {movie.year} <span>•</span> {movie.maturity}
           </p>
+          {recommendationReason ? <small className="recommendation-reason">{recommendationReason}</small> : null}
       </Link>
     </article>
   );

@@ -1,10 +1,10 @@
 # Trạng thái release CineWave
 
-Cập nhật: 03/08/2026
+Cập nhật: 06/08/2026
 
 ## Kết luận
 
-CineWave hiện là release candidate production cho một dịch vụ web streaming nguồn mở/được cấp phép ở quy mô nhỏ. Toàn bộ luồng cốt lõi đã có UI, xử lý server và dữ liệu bền vững; các dashboard không còn dùng uptime, lượt xem, backup hoặc cảnh báo giả.
+CineWave hiện là MVP có nền tảng release cho một dịch vụ web streaming nguồn mở/được cấp phép ở quy mô nhỏ, nhưng chưa đủ bằng chứng để tuyên bố production-ready. Các luồng cốt lõi đã có UI, xử lý server và dữ liệu bền vững; các dashboard không dùng uptime, lượt xem, backup hoặc cảnh báo giả.
 
 Đây không phải hạ tầng tương đương Netflix/Disney+: DRM đa nền tảng, transcoding farm, email provider, MFA/WebAuthn, SIEM/pager, app TV/mobile và multi-region DR vẫn cần dịch vụ cùng ngân sách vận hành riêng.
 
@@ -14,7 +14,8 @@ CineWave hiện là release candidate production cho một dịch vụ web strea
 - Catalog phim nguồn mở có nguồn, giấy phép, attribution, checksum và local MP4 fallback.
 - Player MP4/WebM và HLS.js adaptive playback, HTTP Range từ R2, WebVTT, resume, progress, tốc độ, PiP và fullscreen.
 - Tài khoản password PBKDF2, Turnstile, D1 rate-limit, cookie production, session theo thiết bị và thu hồi session.
-- Nhiều profile, kids/maturity, locale, subtitle preference, autoplay, watchlist, reaction, history và recommendations.
+- Nhiều profile, kids/maturity, locale, subtitle preference, autoplay, watchlist, reaction và history.
+- Hybrid recommender theo `movie_id` kết hợp TF-IDF, reaction, completion, recency và trend; có dedupe, diversity, exploration guardrail, reason code, model version, offline regression set và chế độ off/shadow/canary/active.
 - Đổi mật khẩu, xuất JSON dữ liệu và anonymize tài khoản.
 - Gói thành viên, giới hạn concurrent streams, VietQR và SePay webhook idempotent; payment fail-closed khi thiếu runtime config.
 - CMS title/editorial/blog/program/podcast, lịch xuất bản, R2 upload poster/video/subtitle và rights metadata.
@@ -24,15 +25,21 @@ CineWave hiện là release candidate production cho một dịch vụ web strea
 - CSP/HSTS/security headers, same-origin mutation guard, JSON/upload size validation, request ID và health endpoint.
 - Migration D1 đến `0010_eminent_vapor`, D1 runtime schema v11, R2 binding `MEDIA`.
 - CI workflow, operations/security runbooks và quy trình backup/restore/incident response.
+- Supabase pgvector foundation, model registry, impression/feedback schema và pgTAP theo viewer/admin/anon; ANN index được hoãn đến sau benchmark.
 
 ## Kết quả xác minh
 
 - `npm run lint`: đạt, không warning.
+- `npm run typecheck`: đạt, gồm Cloudflare Worker runtime types.
 - `npm run catalog:test`: 5/5 đạt.
 - `node --test tests/rendered-html.test.mjs`: 23/23 đạt.
-- `npm run test:e2e`: 10/10 đạt trên Chromium với D1 E2E tách biệt.
+- `npm run test:unit`: 5/5 đạt cho hybrid ranker và HTTP byte range.
+- `npm run test:e2e`: 11/11 đạt trên Chromium với D1 E2E tách biệt.
+- Supabase local: 6 migration + seed 11 phim, 15/15 pgTAP đạt, schema lint và advisors sạch.
 - `npm run build`: đạt trên Vinext/Vite Cloudflare target.
 - `npm audit --omit=dev`: 0 production advisory.
+
+Các dòng trên là kết quả local gần nhất; trạng thái release chỉ được xác nhận khi workflow CI của đúng commit bàn giao xanh, gồm cả job Supabase migration reset + pgTAP.
 
 ## Cần cấu hình ở môi trường production
 

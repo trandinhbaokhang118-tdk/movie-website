@@ -13,7 +13,26 @@ test("khách xem landing, FAQ và đi tới đăng ký bằng email", async ({ p
   await page.locator("#landing-email").fill("new.viewer@cinewave.local");
   await page.getByRole("button", { name: /Bắt đầu/ }).click();
   await expect(page).toHaveURL(/\/register\?email=new\.viewer%40cinewave\.local/);
+  await expect(page.getByLabel("Tên đăng nhập")).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveCount(1);
   await expect(page.getByLabel("Email")).toHaveValue("new.viewer@cinewave.local");
+  await expect(page.getByLabel("Mật khẩu", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Xác nhận mật khẩu")).toBeVisible();
+});
+
+test("đăng ký kiểm tra mật khẩu xác nhận trước khi tạo tài khoản", async ({ page }) => {
+  await page.goto("/register");
+  await page.getByLabel("Tên đăng nhập").fill("Khán giả E2E");
+  await page.getByLabel("Email").fill("register.e2e@cinewave.local");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("CineWaveRegister2026");
+  await page.getByLabel("Xác nhận mật khẩu").fill("CineWaveRegister2025");
+  await expect(page.getByRole("alert")).toContainText("Mật khẩu xác nhận không khớp");
+  await expect(page.getByRole("button", { name: "Tạo tài khoản" })).toBeDisabled();
+
+  await page.getByLabel("Xác nhận mật khẩu").fill("CineWaveRegister2026");
+  await injectTurnstileToken(page);
+  await page.getByRole("button", { name: "Tạo tài khoản" }).click();
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("route riêng tư chuyển khách tới đăng nhập và từ chối mật khẩu sai", async ({ page }) => {

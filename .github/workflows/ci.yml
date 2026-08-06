@@ -19,10 +19,32 @@ jobs:
           python-version: "3.12"
       - run: npm ci
       - run: npm run lint
+      - run: npm run typecheck
       - run: npm run catalog:test
       - run: node --test tests/rendered-html.test.mjs
+      - run: npm run test:unit
       - run: npm run build
       - run: npm audit --omit=dev
+
+  supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.102.0
+      - name: Start isolated Postgres and apply migrations and seed
+        run: supabase db start
+      - name: Test schema and RLS by role with pgTAP
+        run: supabase test db --local
+      - name: Lint database objects
+        run: supabase db lint --local --level error --fail-on error
+      - name: Run database advisors
+        run: supabase db advisors --local --type all --level error --fail-on error
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: supabase stop --no-backup
 
   e2e:
     runs-on: ubuntu-latest

@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 
 type Performance = {
   movies: { id: string; title: string; status: string; views: number }[];
-  editorials: { kind: "blog" | "program"; total: number; published: number; views: number; engagements: number; completion: number }[];
+  editorials: { kind: "blog" | "program" | "podcast"; total: number; published: number; views: number; engagements: number; completion: number }[];
 };
+
+type EditorialPerformance = Performance["editorials"][number];
 
 export function LazyAnalytics({ performance }: { performance: Performance }) {
   const ref = useRef<HTMLElement>(null);
@@ -20,6 +22,7 @@ export function LazyAnalytics({ performance }: { performance: Performance }) {
   }, []);
   const blog = performance.editorials.find(item => item.kind === "blog");
   const program = performance.editorials.find(item => item.kind === "program");
+  const podcast = performance.editorials.find(item => item.kind === "podcast");
   const movieViews = performance.movies.reduce((sum, item) => sum + Number(item.views), 0);
   return <section ref={ref} className={`content-performance ${visible ? "is-visible" : ""}`} aria-busy={!visible}>
     {!visible ? <div className="admin-panel chart-skeleton"><span/><span/><span/></div> : <>
@@ -27,13 +30,15 @@ export function LazyAnalytics({ performance }: { performance: Performance }) {
         <Metric label="Lượt xem phim" value={movieViews.toLocaleString("vi-VN")} note={`${performance.movies.length} phim được theo dõi`}/>
         <Metric label="Bài blog đã đăng" value={String(blog?.published ?? 0)} note={`${blog?.total ?? 0} bài trong hệ thống`}/>
         <Metric label="Chương trình đã đăng" value={String(program?.published ?? 0)} note={`${program?.total ?? 0} chương trình trong lịch`}/>
+        <Metric label="Podcast đã đăng" value={String(podcast?.published ?? 0)} note={`${podcast?.total ?? 0} tập trong hệ thống`}/>
       </div>
       <div className="performance-grid">
         <PerformanceChart title="Hiệu suất phim" subtitle="Lượt phát theo từng phim" rows={performance.movies.map(item => ({ label: item.title, value: Number(item.views), suffix: " lượt" }))}/>
-        <StatusChart blog={blog} program={program}/>
-        <PerformanceChart title="Tương tác nội dung" subtitle="Lượt tương tác blog và chương trình" rows={[
+        <StatusChart editorials={performance.editorials}/>
+        <PerformanceChart title="Tương tác nội dung" subtitle="Lượt tương tác blog, chương trình và podcast" rows={[
           { label: "Blog", value: Number(blog?.engagements ?? 0), suffix: " tương tác" },
           { label: "Chương trình", value: Number(program?.engagements ?? 0), suffix: " tương tác" },
+          { label: "Podcast", value: Number(podcast?.engagements ?? 0), suffix: " tương tác" },
         ]}/>
       </div>
     </>}
@@ -56,13 +61,17 @@ function PerformanceChart({ title, subtitle, rows }: { title: string; subtitle: 
   </article>;
 }
 
-function StatusChart({ blog, program }: { blog?: Performance["editorials"][number]; program?: Performance["editorials"][number] }) {
-  const total = (blog?.total ?? 0) + (program?.total ?? 0);
-  const published = (blog?.published ?? 0) + (program?.published ?? 0);
+function StatusChart({ editorials }: { editorials: EditorialPerformance[] }) {
+  const total = editorials.reduce((sum, item) => sum + Number(item.total), 0);
+  const published = editorials.reduce((sum, item) => sum + Number(item.published), 0);
   const rate = total ? Math.round(published / total * 100) : 0;
   return <article className="admin-panel publish-panel">
     <header className="panel-head"><div><h3>Tiến độ xuất bản</h3><p>Tỷ lệ nội dung đã công khai</p></div></header>
     <div className="publish-ring" style={{ background: `conic-gradient(#7258e8 ${rate}%, #eceaf7 0)` }}><div><strong>{rate}%</strong><span>ĐÃ ĐĂNG</span></div></div>
-    <div className="publish-legend"><span><i/>Blog <b>{blog?.published ?? 0}/{blog?.total ?? 0}</b></span><span><i/>Chương trình <b>{program?.published ?? 0}/{program?.total ?? 0}</b></span></div>
+    <div className="publish-legend">{(["blog", "program", "podcast"] as const).map(kind => {
+      const item = editorials.find(editorial => editorial.kind === kind);
+      const label = kind === "blog" ? "Blog" : kind === "program" ? "Chương trình" : "Podcast";
+      return <span key={kind}><i/>{label} <b>{item?.published ?? 0}/{item?.total ?? 0}</b></span>;
+    })}</div>
   </article>;
 }

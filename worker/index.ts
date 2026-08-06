@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { resolveObjectRange } from "./range";
 
 interface Env {
   ASSETS?: Fetcher;
@@ -45,8 +46,9 @@ const worker = {
       headers.set("x-content-type-options", "nosniff");
       headers.set("cache-control", headers.get("cache-control") ?? "public, max-age=31536000, immutable");
       if (object.range) {
-        headers.set("content-range", `bytes ${object.range.offset}-${object.range.offset + object.range.length - 1}/${object.size}`);
-        headers.set("content-length", String(object.range.length));
+        const range = resolveObjectRange(object.range, object.size);
+        headers.set("content-range", `bytes ${range.offset}-${range.offset + range.length - 1}/${object.size}`);
+        headers.set("content-length", String(range.length));
       } else {
         headers.set("content-length", String(object.size));
       }

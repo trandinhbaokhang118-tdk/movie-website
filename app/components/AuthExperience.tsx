@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { type ChangeEventHandler, useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { loginAction, registerAction } from "../actions/auth";
@@ -26,6 +26,7 @@ export function AuthExperience({
   returnTo = "/",
   error,
   defaultEmail = "",
+  defaultUsername = "",
   currentEmail,
   renderChallenge = true,
 }: {
@@ -36,13 +37,19 @@ export function AuthExperience({
   returnTo?: string;
   error?: string;
   defaultEmail?: string;
+  defaultUsername?: string;
   currentEmail?: string;
   renderChallenge?: boolean;
 }) {
   const [open, setOpen] = useState(initialOpen);
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [registrationPassword, setRegistrationPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   const titleId = useId();
+  const passwordConfirmationError = passwordConfirmation.length > 0 && registrationPassword !== passwordConfirmation
+    ? "Mật khẩu xác nhận không khớp."
+    : undefined;
 
   const close = useCallback(() => {
     if (standalone) window.location.assign("/");
@@ -95,11 +102,12 @@ export function AuthExperience({
               ) : (
                 <form action={registerAction} className="auth-form auth-form-premium">
                   <input type="hidden" name="returnTo" value={returnTo} />
-                  <label>Tên hiển thị<input name="displayName" type="text" autoComplete="name" minLength={2} maxLength={60} placeholder="Tên bạn muốn hiển thị" required /></label>
+                  <label>Tên đăng nhập<input name="username" type="text" autoComplete="nickname" minLength={2} maxLength={60} defaultValue={defaultUsername} placeholder="Tên bạn muốn sử dụng" required /></label>
                   <label>Email<input name="email" type="email" autoComplete="email" defaultValue={defaultEmail} placeholder="ban@example.com" required /></label>
-                  <PasswordField autoComplete="new-password" maxLength={128} />
+                  <PasswordField autoComplete="new-password" maxLength={128} value={registrationPassword} onChange={(event) => setRegistrationPassword(event.target.value)} />
+                  <PasswordField name="confirmPassword" label="Xác nhận mật khẩu" placeholder="Nhập lại mật khẩu" autoComplete="new-password" maxLength={128} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} error={passwordConfirmationError} />
                   {renderChallenge ? <TurnstileWidget siteKey={siteKey} action="register" /> : <TurnstileTestPlaceholder />}
-                  <button className="button button-cinema auth-submit" type="submit" disabled={renderChallenge && !siteKey}><span aria-hidden="true">＋</span> Tạo tài khoản</button>
+                  <button className="button button-cinema auth-submit" type="submit" disabled={Boolean(passwordConfirmationError) || (renderChallenge && !siteKey)}><span aria-hidden="true">＋</span> Tạo tài khoản</button>
                 </form>
               )}
               {renderChallenge && !siteKey ? <p className="auth-config-warning" role="alert">Không thể tải xác thực Cloudflare.</p> : null}
@@ -112,21 +120,44 @@ export function AuthExperience({
   );
 }
 
-function PasswordField({ autoComplete, maxLength }: { autoComplete: "current-password" | "new-password"; maxLength?: number }) {
+function PasswordField({
+  autoComplete,
+  maxLength,
+  name = "password",
+  label = "Mật khẩu",
+  placeholder = "Tối thiểu 10 ký tự, gồm chữ và số",
+  value,
+  onChange,
+  error,
+}: {
+  autoComplete: "current-password" | "new-password";
+  maxLength?: number;
+  name?: string;
+  label?: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
+  error?: string;
+}) {
   const [visible, setVisible] = useState(false);
   const inputId = useId();
+  const errorId = useId();
 
   return <div className="auth-field">
-    <label htmlFor={inputId}>Mật khẩu</label>
+    <label htmlFor={inputId}>{label}</label>
     <span className="auth-password-field">
       <input
         id={inputId}
-        name="password"
+        name={name}
         type={visible ? "text" : "password"}
         autoComplete={autoComplete}
         minLength={10}
         maxLength={maxLength}
-        placeholder="Tối thiểu 10 ký tự, gồm chữ và số"
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
         required
       />
       <button
@@ -139,6 +170,7 @@ function PasswordField({ autoComplete, maxLength }: { autoComplete: "current-pas
         {visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
       </button>
     </span>
+    {error ? <small className="auth-field-error" id={errorId} role="alert">{error}</small> : null}
   </div>;
 }
 

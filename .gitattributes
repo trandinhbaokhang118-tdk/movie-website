@@ -1,0 +1,2 @@
+# Wrangler owns this generated runtime declaration and may emit trailing spaces.
+worker-configuration.d.ts -whitespace

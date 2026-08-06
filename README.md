@@ -1,10 +1,11 @@
 # CineWave
 
-CineWave là web app xem phim production-ready quy mô nhỏ, có catalog nguồn mở được kiểm chứng, tài khoản và nhiều hồ sơ, player MP4/HLS + WebVTT, watchlist/lịch sử, thanh toán VietQR đối soát SePay, CMS và RBAC quản trị. Ứng dụng chạy trên Cloudflare Worker qua Vinext, lưu dữ liệu trong D1 và media upload trong R2.
+CineWave là MVP web xem phim quy mô nhỏ đang được củng cố để hướng tới production, có catalog nguồn mở được kiểm chứng, tài khoản và nhiều hồ sơ, player MP4/HLS + WebVTT, watchlist/lịch sử, thanh toán VietQR đối soát SePay, CMS và RBAC quản trị. Ứng dụng chạy trên Cloudflare Worker qua Vinext, lưu dữ liệu trong D1 và media upload trong R2. Các gate còn thiếu được công khai tại `docs/PRODUCTION_READINESS_GATES.md`.
 
 ## Trạng thái release
 
-- Build production, ESLint, 23 contract tests, 5 crawler tests và 10 Playwright E2E đều đạt.
+- Build, ESLint, contract tests, crawler tests, hybrid recommendation tests và Playwright E2E được kiểm tra trong CI.
+- Supabase có job riêng để dựng lại database từ migration/seed, chạy pgTAP theo role và lint schema; chỉ được ghi nhận “đạt” khi workflow của commit bàn giao xanh.
 - Dependency production có `0` advisory ở lần chạy `npm audit --omit=dev` gần nhất.
 - Thanh toán tự chuyển sang trạng thái tạm dừng nếu thiếu bất kỳ cấu hình thụ hưởng/webhook nào; source không chứa tài khoản ngân hàng hoặc secret mặc định.
 - Các tính năng cần dịch vụ bên ngoài (Turnstile production, SePay, TMDB, Supabase) chỉ bật khi runtime secret tương ứng đã được cấu hình.
@@ -61,8 +62,12 @@ Mở `http://localhost:3000`. Dữ liệu D1 local được tạo trong `.wrangl
 | `npm run build` | Build production Worker-compatible |
 | `npm run start` | Chạy bản build |
 | `npm run lint` | Kiểm tra ESLint |
+| `npm run typecheck` | Kiểm tra TypeScript và Cloudflare Worker runtime types |
 | `npm test` | Build và chạy test HTML render |
 | `npm run test:e2e` | Chạy Playwright E2E trên cổng 3100 với DB riêng |
+| `npm run test:recommendation` | Chạy offline regression gate cho hybrid ranker |
+| `npm run test:unit` | Chạy toàn bộ unit test TypeScript |
+| `npm run test:supabase` | Chạy pgTAP trên Supabase local đã khởi động |
 | `npm run db:generate` | Tạo Drizzle migration sau khi sửa schema |
 | `npm run db:status` | Xem các bảng D1 local |
 | `npm run catalog:crawl` | Crawl catalog hợp lệ từ Internet Archive |
@@ -144,6 +149,8 @@ Nếu thiếu cấu hình thanh toán, nút tạo hóa đơn bị vô hiệu hó
 
 - [x] Đã chạy `npm run lint`.
 - [x] Đã chạy contract/crawler tests, build và `npm run test:e2e`.
+- [x] Đã có hybrid offline regression set, model card và kill switch.
+- [ ] Workflow Supabase migration reset + pgTAP của commit bàn giao đã xanh.
 - [x] `npm audit --omit=dev` không còn advisory production.
 - [ ] `.env.local` không được commit và các secret production đã được cập nhật.
 - [ ] `ADMIN_EMAILS` chỉ chứa người được cấp quyền.
@@ -151,6 +158,7 @@ Nếu thiếu cấu hình thanh toán, nút tạo hóa đơn bị vô hiệu hó
 - [ ] SePay webhook dùng HTTPS, secret riêng và được kiểm thử idempotency.
 - [ ] Catalog có bằng chứng nguồn/giấy phép; không đưa phim thương mại chưa có quyền phát hành vào player.
 - [ ] Kiểm tra `/api/health` sau deploy.
+- [ ] Tất cả gate trong `docs/PRODUCTION_READINESS_GATES.md` có bằng chứng theo release.
 
 ## Giới hạn đã biết
 

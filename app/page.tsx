@@ -10,6 +10,7 @@ import { TrendDiscovery } from "./components/TrendDiscovery";
 import { getViewerContext } from "./viewer-context";
 import { getTrendSnapshots, listManagedTitles, listProfileReactions, listUpcomingManagedTitles, listViewingActivity, listWatchlist, maturityRatingAllows, type TrendPeriod, type TrendSnapshot } from "@/db/runtime";
 import { featuredMovie, filterMoviesForMaturity, movies, viewingProgressPercent } from "@/lib/catalog";
+import { parseRecommenderMode, recommendationReasonLabel, recommendMovies } from "@/lib/recommendation/hybrid";
 import { importedMoviesForHome } from "@/lib/tmdb/sync";
 
 export const dynamic = "force-dynamic";
@@ -49,18 +50,24 @@ export default async function Home() {
   const trendSnapshots: Record<TrendPeriod, TrendSnapshot> = {
     hour: sanitizeTrend(hourTrend), day: sanitizeTrend(dayTrend), week: sanitizeTrend(weekTrend),
   };
-  const genreWeights = new Map<string, number>();
-  const addGenres = (movieId: string, weight: number) => movieById[movieId]?.genres.forEach((genre) => genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + weight));
-  context.activity.forEach((item, index) => addGenres(item.movieId, Math.max(1, 4 - index * .12)));
-  context.savedIds.forEach((id) => addGenres(id, 3.5));
-  context.reactions.forEach((item) => addGenres(item.movieId, item.reaction === "love" ? 7 : item.reaction === "like" ? 4 : -6));
   const trendScore = new Map(dayTrend.ranking.map((item) => [item.movieId, item.score]));
-  const rejected = new Set(context.reactions.filter((item) => item.reaction === "not_for_me").map((item) => item.movieId));
-  const forYou = visibleMovies.filter((movie) => !movie.featured && !rejected.has(movie.id)).sort((a, b) => {
-    const score = (movie: typeof a) => movie.genres.reduce((sum, genre) => sum + (genreWeights.get(genre) ?? 0), 0)
-      + movie.match * .09 + (trendScore.get(movie.id) ?? 0) * .3 + (movie.newRelease ? 2 : 0);
-    return score(b) - score(a);
-  }).slice(0, 8);
+  const recommendationResult = recommendMovies({
+    candidates: visibleMovies.filter((movie) => !movie.featured),
+    watchHistory: context.activity,
+    savedMovieIds: context.savedIds,
+    reactions: context.reactions,
+    trendScores: trendScore,
+    limit: 8,
+  }, {
+    mode: parseRecommenderMode(process.env.CINEWAVE_RECOMMENDER_MODE),
+    profileKey: context.profile.id,
+    canaryPercent: Number(process.env.CINEWAVE_RECOMMENDER_CANARY_PERCENT ?? 10),
+  });
+  const forYou = recommendationResult.items.flatMap((item) => movieById[item.movieId] ? [movieById[item.movieId]] : []);
+  const recommendationReasonsById = Object.fromEntries(recommendationResult.items.map((item) => [
+    item.movieId,
+    recommendationReasonLabel(item.reasonCodes[0]),
+  ]));
   const activityWithMovies = activity.flatMap((item) => {
     const movie = movies.find((candidate) => candidate.id === item.movieId);
     return movie ? [{ movie, progress: viewingProgressPercent(movie, item.positionSeconds) }] : [];
@@ -107,7 +114,7 @@ export default async function Home() {
         ) : null}
         <TrendDiscovery snapshots={trendSnapshots} movieMap={movieById} savedMovieIds={context.savedIds} />
         <MediaRail title="Mới trên CineWave" eyebrow="NHỮNG CÂU CHUYỆN VỪA CẬP BẾN" movies={newReleases} savedMovieIds={context.savedIds} />
-        <MediaRail title="Dự đoán hợp gu tối nay" eyebrow="GỢI Ý TỪ LỊCH SỬ XEM · TIM · TỦ PHIM" movies={forYou} savedMovieIds={context.savedIds} />
+        <MediaRail title="Dự đoán hợp gu tối nay" eyebrow="GỢI Ý TỪ LỊCH SỬ XEM · TIM · TỦ PHIM" movies={forYou} savedMovieIds={context.savedIds} reasonById={recommendationReasonsById} />
       </div>
       <Footer />
     </main>

@@ -44,15 +44,17 @@ export async function loginAction(formData: FormData) {
 
 export async function registerAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
-  const displayName = String(formData.get("displayName") ?? "");
+  const username = String(formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
   const returnTo = safeReturnPath(String(formData.get("returnTo") ?? "/"));
+  if (password !== confirmPassword) redirect(authErrorPath("/register", "Mật khẩu xác nhận không khớp.", returnTo, email, username));
   const rateLimit = await consumeRateLimit("auth.register", await authIdentity(email), 5, 60 * 60);
-  if (!rateLimit.allowed) redirect(authErrorPath("/register", "Bạn đã tạo quá nhiều yêu cầu. Vui lòng thử lại sau.", returnTo, email));
+  if (!rateLimit.allowed) redirect(authErrorPath("/register", "Bạn đã tạo quá nhiều yêu cầu. Vui lòng thử lại sau.", returnTo, email, username));
   const challenge = await verifyTurnstile(formData, "register");
-  if (!challenge.ok) redirect(authErrorPath("/register", challenge.message, returnTo, email));
+  if (!challenge.ok) redirect(authErrorPath("/register", challenge.message, returnTo, email, username));
   try {
-    const user = await registerWithPassword({ email, displayName, password });
+    const user = await registerWithPassword({ email, displayName: username, password });
     await startSession(user.id);
     const profile = await getActiveProfile(user.id);
     const locale = normalizeLocale((await cookies()).get(LOCALE_COOKIE)?.value);
@@ -60,7 +62,7 @@ export async function registerAction(formData: FormData) {
   } catch (error) {
     console.error("Local account registration failed", error);
     const message = error instanceof Error ? registrationMessage(error.message) : "Không thể tạo tài khoản.";
-    redirect(authErrorPath("/register", message, returnTo));
+    redirect(authErrorPath("/register", message, returnTo, email, username));
   }
   redirect(returnTo);
 }
@@ -118,15 +120,16 @@ export async function deleteAccountAction(formData: FormData) {
   redirect("/?account=deleted");
 }
 
-function authErrorPath(path: string, error: string, returnTo: string, email = "") {
+function authErrorPath(path: string, error: string, returnTo: string, email = "", username = "") {
   const emailQuery = email ? `&email=${encodeURIComponent(email)}` : "";
-  return `${path}?error=${encodeURIComponent(error)}&return_to=${encodeURIComponent(returnTo)}${emailQuery}`;
+  const usernameQuery = username ? `&username=${encodeURIComponent(username)}` : "";
+  return `${path}?error=${encodeURIComponent(error)}&return_to=${encodeURIComponent(returnTo)}${emailQuery}${usernameQuery}`;
 }
 
 function registrationMessage(code: string) {
   if (code === "EMAIL_ALREADY_REGISTERED") return "Email này đã được đăng ký.";
   if (code === "INVALID_EMAIL") return "Email chưa đúng định dạng.";
-  if (code === "INVALID_NAME") return "Tên hiển thị phải có từ 2 đến 60 ký tự.";
+  if (code === "INVALID_NAME") return "Tên đăng nhập phải có từ 2 đến 60 ký tự.";
   if (code === "WEAK_PASSWORD") return "Mật khẩu phải có ít nhất 10 ký tự, gồm chữ và số.";
   return "Không thể tạo tài khoản lúc này.";
 }

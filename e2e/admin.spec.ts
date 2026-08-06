@@ -62,4 +62,8 @@ test("admin CRUD, xuất bản/ẩn nội dung, quản lý user và audit", asyn
   await expect(managed).toHaveCount(0);
   await expect(page.locator(".audit-list-v2")).toContainText("content.deleted");
   await expect(page.locator(".audit-list-v2")).toContainText("account.locked");
+
+  await page.goto("/admin/analytics");
+  await expect(page.getByText("Podcast đã đăng", { exact: true })).toBeVisible();
+  await expect(page.locator(".publish-legend span").filter({ hasText: "Podcast" })).toContainText("0/0");
 });

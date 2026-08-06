@@ -1,0 +1,65 @@
+{
+  "datasetVersion": "cinewave-offline-eval-v1",
+  "description": "Small deterministic relevance set for regression testing. Labels use movie_id only and must be expanded before production claims.",
+  "cases": [
+    {
+      "profileId": "profile-space",
+      "watchHistory": [
+        {
+          "movieId": "space-origin",
+          "positionSeconds": 5400,
+          "updatedAt": "2026-08-01T00:00:00.000Z"
+        }
+      ],
+      "savedMovieIds": ["space-origin"],
+      "reactions": [
+        {
+          "movieId": "space-origin",
+          "reaction": "love",
+          "updatedAt": "2026-08-01T00:00:00.000Z"
+        },
+        {
+          "movieId": "crime-city",
+          "reaction": "not_for_me",
+          "updatedAt": "2026-08-02T00:00:00.000Z"
+        }
+      ],
+      "relevantMovieIds": ["space-return"],
+      "blockedMovieIds": ["crime-city"]
+    },
+    {
+      "profileId": "profile-romance",
+      "watchHistory": [
+        {
+          "movieId": "romance-rain",
+          "positionSeconds": 5700,
+          "updatedAt": "2026-07-30T00:00:00.000Z"
+        }
+      ],
+      "savedMovieIds": [],
+      "reactions": [
+        {
+          "movieId": "romance-rain",
+          "reaction": "like",
+          "updatedAt": "2026-07-30T00:00:00.000Z"
+        }
+      ],
+      "relevantMovieIds": ["romance-letters"],
+      "blockedMovieIds": []
+    },
+    {
+      "profileId": "profile-nature",
+      "watchHistory": [
+        {
+          "movieId": "nature-ocean",
+          "positionSeconds": 3000,
+          "updatedAt": "2026-07-28T00:00:00.000Z"
+        }
+      ],
+      "savedMovieIds": ["nature-ocean"],
+      "reactions": [],
+      "relevantMovieIds": ["nature-forest"],
+      "blockedMovieIds": []
+    }
+  ]
+}

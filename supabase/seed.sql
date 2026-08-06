@@ -1,6 +1,9 @@
-begin;
+do $cinewave_seed$
+begin
 
-create temporary table cinewave_seed (
+drop table if exists private.cinewave_seed;
+
+create unlogged table private.cinewave_seed (
   external_id text,
   slug text,
   title text,
@@ -16,9 +19,9 @@ create temporary table cinewave_seed (
   source_url text,
   license_name text,
   license_url text
-) on commit drop;
+);
 
-insert into cinewave_seed values
+insert into private.cinewave_seed values
   ('ia-bigbuckbunny_124', 'big-buck-bunny', 'Big Buck Bunny', 'Big Buck Bunny', 'Một chú thỏ hiền lành quyết định dạy cho ba kẻ bắt nạt trong khu rừng một bài học đầy hài hước.', 2008, 596, 'P', '/media/artwork/big-buck-bunny-poster.jpg', '/media/artwork/big-buck-bunny-backdrop.jpg', 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4', array['Hoạt hình','Hài','Gia đình'], 'https://archive.org/details/BigBuckBunny_124', 'Creative Commons Attribution', 'http://creativecommons.org/licenses/by/3.0/'),
   ('ia-sintel', 'sintel', 'Sintel', 'Sintel', 'Một nữ chiến binh trẻ băng qua vùng đất khắc nghiệt để tìm lại người bạn rồng đã mất.', 2010, 888, 'T13', '/media/artwork/sintel-poster.jpg', '/media/artwork/sintel-backdrop.jpg', 'https://archive.org/download/Sintel/sintel-2048-stereo_512kb.mp4', array['Hoạt hình','Kỳ ảo','Phiêu lưu'], 'https://archive.org/details/Sintel', 'Creative Commons Attribution', 'http://creativecommons.org/licenses/by/3.0/'),
   ('ia-tears-of-steel', 'tears-of-steel', 'Tears of Steel', 'Tears of Steel', 'Một nhóm chiến binh và nhà khoa học tái hiện một khoảnh khắc tình cảm trong quá khứ để cứu thế giới khỏi robot hủy diệt.', 2012, 734, 'T13', '/media/artwork/tears-of-steel-poster.jpg', '/media/artwork/tears-of-steel-backdrop.jpg', 'https://archive.org/download/Tears-of-Steel/tears_of_steel_1080p.mp4', array['Khoa học viễn tưởng','Hành động','Chính kịch'], 'https://archive.org/details/Tears-of-Steel', 'Creative Commons Attribution', 'http://creativecommons.org/licenses/by/3.0/'),
@@ -45,7 +48,7 @@ select
     'license_name', license_name,
     'license_url', license_url
   ), now()
-from cinewave_seed
+from private.cinewave_seed
 on conflict (external_id) do update set
   slug = excluded.slug,
   title = excluded.title,
@@ -66,13 +69,13 @@ insert into public.genres (slug, name)
 select distinct
   lower(regexp_replace(trim(name), '\s+', '-', 'g')),
   name
-from cinewave_seed
+from private.cinewave_seed
 cross join lateral unnest(genres) as genre(name)
 on conflict (name) do update set updated_at = now();
 
 insert into public.movie_genres (movie_id, genre_id)
 select m.id, g.id
-from cinewave_seed s
+from private.cinewave_seed s
 join public.movies m on m.external_id = s.external_id
 cross join lateral unnest(s.genres) as genre(genre_name)
 join public.genres g on g.name = genre.genre_name
@@ -84,7 +87,7 @@ insert into public.content_rights (
 select
   m.id, 'GLOBAL', timestamptz '2000-01-01 00:00:00+00', timestamptz '2200-01-01 00:00:00+00',
   'approved', s.source_url, s.license_url
-from cinewave_seed s
+from private.cinewave_seed s
 join public.movies m on m.external_id = s.external_id
 on conflict (movie_id, territory, starts_at) do update set
   status = excluded.status,
@@ -92,4 +95,7 @@ on conflict (movie_id, territory, starts_at) do update set
   license_reference = excluded.license_reference,
   license_url = excluded.license_url;
 
-commit;
+drop table private.cinewave_seed;
+
+end
+$cinewave_seed$;
